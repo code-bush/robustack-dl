@@ -14,20 +14,48 @@
 
 ## Installation
 
-### From crates.io (when published)
+### Pre-built Binaries (Linux)
+Download the latest binary from the [Releases](https://github.com/codebush/robustack-dl/releases) page.
+
 ```bash
+chmod +x robustack-dl
+sudo mv robustack-dl /usr/local/bin/
+```
+
+### From Source
+
+**Prerequisites**: [Rust 1.85+](https://www.rust-lang.org/tools/install)
+
+#### Linux (Debian/Ubuntu)
+```bash
+# Install build dependencies
+sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl-dev
+
+# Install via cargo
+cargo install robustack-dl
+
+# OR build from source
+git clone https://github.com/codebush/robustack-dl.git
+cd robustack-dl
+cargo build --release
+```
+
+#### macOS
+```bash
+# Install OpenSSL (if not already present)
+brew install openssl
+
+# Install via cargo
 cargo install robustack-dl
 ```
 
-### From source
-```bash
-git clone https://github.com/codebush-collective/robustack-dl.git
-cd robustack-dl
-cargo build --release
-# Binary available at target/release/robustack-dl
-```
+#### Windows
+Ensure you have the [Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) installed.
 
-**Requirements:** Rust 1.85+ (Edition 2024)
+```powershell
+# Install via cargo
+cargo install robustack-dl
+```
 
 ---
 
