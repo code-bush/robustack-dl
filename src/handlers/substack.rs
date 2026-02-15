@@ -33,15 +33,14 @@ pub struct SubstackPost {
     pub cover_image: Option<String>,
 }
 
-/// API response wrapper.
 #[derive(Debug, Deserialize)]
-struct PostResponse {
-    posts: Vec<SubstackPost>,
-    total: u64,
-    #[allow(dead_code)]
-    limit: u64,
-    #[allow(dead_code)]
-    offset: u64,
+#[serde(untagged)]
+enum RawResponse {
+    Map {
+        posts: Vec<SubstackPost>,
+        total: Option<u64>,
+    },
+    Array(Vec<SubstackPost>),
 }
 
 /// Fetch all posts matching configuration filters.
@@ -63,47 +62,69 @@ pub async fn fetch_posts(
     loop {
         let url = format!("{api_url}?limit={limit}&offset={offset}");
         let text = client.get_text(&url).await?;
-        let response: PostResponse = serde_json::from_str(&text)?;
 
-        if response.posts.is_empty() {
+        if config.verbose {
+            tracing::debug!(url = %url, "Fetched raw API response");
+        }
+
+        let raw: RawResponse = serde_json::from_str(&text).map_err(|e| {
+            anyhow::anyhow!("Failed to parse JSON from {}: {} - Raw body snippet: {:.200}", url, e, text)
+        })?;
+
+        let (posts, total) = match raw {
+            RawResponse::Map { posts, total } => (posts, total),
+            RawResponse::Array(posts) => (posts, None),
+        };
+
+        if posts.is_empty() {
             break;
         }
 
-        for post in response.posts {
+        let received_count = posts.len() as u64;
+        for post in posts {
             // Date filtering via string comparison (works for ISO8601)
             if let Some(ref after) = config.after {
-                // post_date "2024-01-01T..." >= after "2024-01-01"?
-                // We want post_date >= after.
-                // "2024-01-01T" > "2024-01-01". So if strict >, it works.
-                // Determining exact "on or after" behavior with string compare of different lengths is tricky.
-                // We assume strict string comparison: "2024-01-01T..." > "2024-01-01" is true.
                 if post.post_date < *after {
                     continue;
                 }
             }
             if let Some(ref before) = config.before {
-                // We want post_date <= before.
-                // "2024-01-01T..." > "2024-01-01".
-                // So "2024-01-01T12:00" > "2024-01-01".
-                // If user says before "2024-01-01", they usually mean end of that day?
-                // Or start?
-                // If we assume start, then "2024-01-01T12:00" is > "2024-01-01", so it is excluded.
-                // This is safe/conservative.
                 if post.post_date > *before {
                     continue;
+                }
+            }
+            if let Some(l) = config.limit {
+                if all_posts.len() >= l as usize {
+                    break;
                 }
             }
             all_posts.push(post);
         }
 
+        if let Some(l) = config.limit {
+            if all_posts.len() >= l as usize {
+                break;
+            }
+        }
+
         offset += limit;
-        if offset >= response.total {
+
+        // If we have a total, use it to break.
+        // If not (Array mode), we break if we received fewer than 'limit' posts,
+        // which usually indicates the end of the collection.
+        let should_break = if let Some(t) = total {
+            offset >= t
+        } else {
+            received_count < limit
+        };
+
+        if should_break {
             break;
         }
 
         // Safety break for extremely large blogs to prevent infinite loops
-        if offset > 10_000 {
-            tracing::warn!("Hit 10k post limit safety break");
+        if offset > 20_000 {
+            tracing::warn!("Hit 20k post limit safety break");
             break;
         }
     }

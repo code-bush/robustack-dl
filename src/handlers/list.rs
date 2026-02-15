@@ -102,7 +102,7 @@ mod tests {
             "https://example.substack.com",
         ])
         .unwrap();
-        AppConfig::from_cli(&cli, None)
+        AppConfig::from_cli(&cli, None, None)
     }
 
     #[tokio::test]

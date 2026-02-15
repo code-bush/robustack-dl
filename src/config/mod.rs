@@ -81,6 +81,9 @@ pub struct AppConfig {
     // -- Diagnostics --
     /// Verbose / debug logging enabled.
     pub verbose: bool,
+
+    /// Maximum number of posts to process.
+    pub limit: Option<u32>,
 }
 
 impl AppConfig {
@@ -89,7 +92,11 @@ impl AppConfig {
     /// This is the **only** place where `Cli` types cross into the domain
     /// layer.  After this point every consumer works with `AppConfig`.
     #[must_use]
-    pub fn from_cli(cli: &crate::cli::Cli, download: Option<&crate::cli::DownloadArgs>) -> Self {
+    pub fn from_cli(
+        cli: &crate::cli::Cli,
+        limit: Option<u32>,
+        download: Option<&crate::cli::DownloadArgs>,
+    ) -> Self {
         let (
             format,
             output_dir,
@@ -151,6 +158,7 @@ impl AppConfig {
             file_extensions,
             add_source_url,
             create_archive,
+            limit,
         }
     }
 
@@ -191,7 +199,7 @@ mod tests {
     #[test]
     fn from_cli_captures_global_flags() {
         let cli = test_cli();
-        let config = AppConfig::from_cli(&cli, None);
+        let config = AppConfig::from_cli(&cli, None, None);
         assert_eq!(config.rate_limit, 5);
         assert!(!config.verbose);
     }
@@ -200,7 +208,7 @@ mod tests {
     fn from_cli_captures_download_args() {
         let cli = test_cli();
         if let crate::cli::Commands::Download(ref dl) = cli.command {
-            let config = AppConfig::from_cli(&cli, Some(dl));
+            let config = AppConfig::from_cli(&cli, dl.limit, Some(dl));
             assert_eq!(config.format, OutputFormat::Md);
             assert_eq!(config.output_dir, PathBuf::from("."));
             assert!(!config.dry_run);
@@ -212,7 +220,7 @@ mod tests {
     #[test]
     fn from_cli_defaults_when_no_download() {
         let cli = test_cli();
-        let config = AppConfig::from_cli(&cli, None);
+        let config = AppConfig::from_cli(&cli, None, None);
         assert_eq!(config.format, OutputFormat::Html);
         assert!(!config.download_images);
         assert!(!config.download_files);
@@ -221,14 +229,14 @@ mod tests {
     #[test]
     fn allowed_extensions_empty_string() {
         let cli = test_cli();
-        let config = AppConfig::from_cli(&cli, None);
+        let config = AppConfig::from_cli(&cli, None, None);
         assert!(config.allowed_extensions().is_empty());
     }
 
     #[test]
     fn allowed_extensions_parses_csv() {
         let cli = test_cli();
-        let mut config = AppConfig::from_cli(&cli, None);
+        let mut config = AppConfig::from_cli(&cli, None, None);
         config.file_extensions = "pdf, docx, epub".to_owned();
         let exts = config.allowed_extensions();
         assert_eq!(exts, vec!["pdf", "docx", "epub"]);
@@ -237,7 +245,7 @@ mod tests {
     #[test]
     fn config_implements_debug() {
         let cli = test_cli();
-        let config = AppConfig::from_cli(&cli, None);
+        let config = AppConfig::from_cli(&cli, None, None);
         let debug = format!("{config:?}");
         assert!(debug.contains("AppConfig"));
     }
@@ -245,7 +253,7 @@ mod tests {
     #[test]
     fn config_implements_clone() {
         let cli = test_cli();
-        let config = AppConfig::from_cli(&cli, None);
+        let config = AppConfig::from_cli(&cli, None, None);
         let cloned = config.clone();
         assert_eq!(cloned.rate_limit, config.rate_limit);
     }

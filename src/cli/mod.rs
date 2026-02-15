@@ -201,6 +201,10 @@ pub struct DownloadArgs {
     /// Create an archive index page linking all downloaded posts.
     #[arg(long)]
     pub create_archive: bool,
+
+    /// Maximum number of posts to process.
+    #[arg(long)]
+    pub limit: Option<u32>,
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +229,10 @@ pub struct ListArgs {
     /// Substack URL to list posts from (e.g. `https://example.substack.com`).
     #[arg(short, long)]
     pub url: String,
+
+    /// Maximum number of posts to process.
+    #[arg(long)]
+    pub limit: Option<u32>,
 }
 
 // ---------------------------------------------------------------------------

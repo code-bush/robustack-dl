@@ -314,7 +314,7 @@ mod tests {
         ])
         .unwrap();
         if let crate::cli::Commands::Download(ref dl) = cli.command {
-            AppConfig::from_cli(&cli, Some(dl))
+            AppConfig::from_cli(&cli, dl.limit, Some(dl))
         } else {
             panic!("expected Download");
         }

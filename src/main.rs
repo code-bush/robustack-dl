@@ -56,12 +56,12 @@ async fn main() -> anyhow::Result<()> {
     // Step 2: Dispatch to handler.
     match cli.command {
         Commands::Download(ref args) => {
-            let config = AppConfig::from_cli(&cli, Some(args));
+            let config = AppConfig::from_cli(&cli, args.limit, Some(args));
             let http_client = ReqwestClient::from_config(&config);
             handlers::download::run(&args.url, &config, &http_client).await?;
         }
         Commands::List(ref args) => {
-            let config = AppConfig::from_cli(&cli, None);
+            let config = AppConfig::from_cli(&cli, args.limit, None);
             let http_client = ReqwestClient::from_config(&config);
             handlers::list::run(&args.url, &config, &http_client).await?;
         }
