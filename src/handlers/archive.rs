@@ -87,3 +87,85 @@ pub fn generate_index(posts: &[SubstackPost], config: &AppConfig) -> anyhow::Res
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::Cli;
+    use clap::Parser;
+    use std::fs;
+    use tempfile::tempdir;
+
+    fn test_config(output_dir: &std::path::Path) -> AppConfig {
+        let cli = Cli::try_parse_from([
+            "robustack-dl",
+            "download",
+            "--url",
+            "https://example.com",
+            "--output",
+            output_dir.to_str().unwrap(),
+        ])
+        .unwrap();
+        if let crate::cli::Commands::Download(ref dl) = cli.command {
+            crate::config::AppConfig::from_cli(&cli, None, Some(dl))
+        } else {
+            panic!("Expected Download command");
+        }
+    }
+
+    #[test]
+    fn generate_index_creates_file() {
+        let dir = tempdir().unwrap();
+        let config = test_config(dir.path());
+        let posts = vec![SubstackPost {
+            id: 1,
+            title: "Test Post".to_string(),
+            slug: "test-post".to_string(),
+            post_date: "2024-01-01".to_string(),
+            canonical_url: "http://ex.com/p1".to_string(),
+            description: "desc".to_string(),
+            body_html: None,
+            cover_image: None,
+        }];
+
+        generate_index(&posts, &config).unwrap();
+
+        let index_path = dir.path().join("index.html");
+        assert!(index_path.exists());
+        let content = fs::read_to_string(index_path).unwrap();
+        assert!(content.contains("Test Post"));
+        assert!(content.contains("test-post.html"));
+    }
+
+    #[test]
+    fn generate_index_escapes_html() {
+        let dir = tempdir().unwrap();
+        let config = test_config(dir.path());
+        let posts = vec![SubstackPost {
+            id: 1,
+            title: "<script>alert('xss')</script>".to_string(),
+            slug: "xss".to_string(),
+            post_date: "2024-01-01".to_string(),
+            canonical_url: "http://ex.com/p1".to_string(),
+            description: "desc".to_string(),
+            body_html: None,
+            cover_image: None,
+        }];
+
+        generate_index(&posts, &config).unwrap();
+
+        let content = fs::read_to_string(dir.path().join("index.html")).unwrap();
+        assert!(!content.contains("<script>"));
+        assert!(content.contains("&lt;script&gt;alert('xss')&lt;/script&gt;"));
+    }
+
+    #[test]
+    fn generate_index_empty_does_nothing() {
+        let dir = tempdir().unwrap();
+        let config = test_config(dir.path());
+        let posts = vec![];
+
+        generate_index(&posts, &config).unwrap();
+        assert!(!dir.path().join("index.html").exists());
+    }
+}

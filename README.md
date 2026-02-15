@@ -45,6 +45,21 @@ RoBustack-DL v1.0.0
 
 ---
 
+### List posts
+```bash
+# List the last 10 posts
+robustack-dl list --url https://example.substack.com --limit 10
+```
+
+#### List flags
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--url <URL>` | `-u` | Substack URL to list | *required* |
+| `--limit <N>` | | Max number of posts to list | *all* |
+
+---
+
 ### Download content
 ```bash
 # Basic download (HTML format, current directory)
@@ -96,6 +111,7 @@ robustack-dl download --url https://example.substack.com --dry-run
 | `--file-extensions <LIST>` | | Comma-separated extension allowlist | *(all)* |
 | `--add-source-url` | | Append source URL to each file | `false` |
 | `--create-archive` | | Generate an archive index page | `false` |
+| `--limit <N>` | | Max number of posts to download | *all* |
 
 ---
 
@@ -136,6 +152,7 @@ robustack-dl completions --shell fish > ~/.config/fish/completions/robustack-dl.
 | `--verbose` | `-v` | Enable debug-level logging | `false` |
 | `--proxy <URL>` | `-x` | HTTP/SOCKS5 proxy URL | *none* |
 | `--rate <N>` | `-r` | Max requests per second | `2` |
+| `--limit <N>` | | Global limit on posts processed | *all* |
 | `--after <DATE>` | | Only process posts after this date | *none* |
 | `--before <DATE>` | | Only process posts before this date | *none* |
 | `--cookie-name <NAME>` | | Cookie name for Substack auth | *none* |

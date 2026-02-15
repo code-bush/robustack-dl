@@ -33,15 +33,14 @@ pub struct SubstackPost {
     pub cover_image: Option<String>,
 }
 
-/// API response wrapper.
 #[derive(Debug, Deserialize)]
-struct PostResponse {
-    posts: Vec<SubstackPost>,
-    total: u64,
-    #[allow(dead_code)]
-    limit: u64,
-    #[allow(dead_code)]
-    offset: u64,
+#[serde(untagged)]
+enum RawResponse {
+    Map {
+        posts: Vec<SubstackPost>,
+        total: Option<u64>,
+    },
+    Array(Vec<SubstackPost>),
 }
 
 /// Fetch all posts matching configuration filters.
@@ -63,50 +62,155 @@ pub async fn fetch_posts(
     loop {
         let url = format!("{api_url}?limit={limit}&offset={offset}");
         let text = client.get_text(&url).await?;
-        let response: PostResponse = serde_json::from_str(&text)?;
 
-        if response.posts.is_empty() {
+        if config.verbose {
+            tracing::debug!(url = %url, "Fetched raw API response");
+        }
+
+        let raw: RawResponse = serde_json::from_str(&text).map_err(|e| {
+            anyhow::anyhow!("Failed to parse JSON from {url}: {e} - Raw body snippet: {text:.200}")
+        })?;
+
+        let (posts, total) = match raw {
+            RawResponse::Map { posts, total } => (posts, total),
+            RawResponse::Array(posts) => (posts, None),
+        };
+
+        if posts.is_empty() {
             break;
         }
 
-        for post in response.posts {
+        let received_count = posts.len() as u64;
+        for post in posts {
             // Date filtering via string comparison (works for ISO8601)
-            if let Some(ref after) = config.after {
-                // post_date "2024-01-01T..." >= after "2024-01-01"?
-                // We want post_date >= after.
-                // "2024-01-01T" > "2024-01-01". So if strict >, it works.
-                // Determining exact "on or after" behavior with string compare of different lengths is tricky.
-                // We assume strict string comparison: "2024-01-01T..." > "2024-01-01" is true.
-                if post.post_date < *after {
-                    continue;
-                }
+            if config
+                .after
+                .as_ref()
+                .is_some_and(|after| post.post_date < *after)
+            {
+                continue;
             }
-            if let Some(ref before) = config.before {
-                // We want post_date <= before.
-                // "2024-01-01T..." > "2024-01-01".
-                // So "2024-01-01T12:00" > "2024-01-01".
-                // If user says before "2024-01-01", they usually mean end of that day?
-                // Or start?
-                // If we assume start, then "2024-01-01T12:00" is > "2024-01-01", so it is excluded.
-                // This is safe/conservative.
-                if post.post_date > *before {
-                    continue;
-                }
+            if config
+                .before
+                .as_ref()
+                .is_some_and(|before| post.post_date > *before)
+            {
+                continue;
+            }
+            if config.limit.is_some_and(|l| all_posts.len() >= l as usize) {
+                break;
             }
             all_posts.push(post);
         }
 
+        if config.limit.is_some_and(|l| all_posts.len() >= l as usize) {
+            break;
+        }
+
         offset += limit;
-        if offset >= response.total {
+
+        // If we have a total, use it to break.
+        // If not (Array mode), we break if we received fewer than 'limit' posts,
+        // which usually indicates the end of the collection.
+        let should_break = if let Some(t) = total {
+            offset >= t
+        } else {
+            received_count < limit
+        };
+
+        if should_break {
             break;
         }
 
         // Safety break for extremely large blogs to prevent infinite loops
-        if offset > 10_000 {
-            tracing::warn!("Hit 10k post limit safety break");
+        if offset > 20_000 {
+            tracing::warn!("Hit 20k post limit safety break");
             break;
         }
     }
 
     Ok(all_posts)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::client::HttpClient;
+    use crate::config::AppConfig;
+
+    #[derive(Debug)]
+    struct MockClient {
+        response: String,
+    }
+
+    #[async_trait::async_trait]
+    impl HttpClient for MockClient {
+        async fn get_bytes(&self, _url: &str) -> anyhow::Result<Vec<u8>> {
+            Ok(vec![])
+        }
+        async fn get_text(&self, _url: &str) -> anyhow::Result<String> {
+            Ok(self.response.clone())
+        }
+        fn rate_limit(&self) -> u32 {
+            100
+        }
+    }
+
+    fn test_config() -> AppConfig {
+        use crate::cli::Cli;
+        use clap::Parser;
+        // Minimal valid config
+        let cli =
+            Cli::try_parse_from(["robustack-dl", "download", "--url", "https://x.com"]).unwrap();
+        AppConfig::from_cli(&cli, None, None)
+    }
+
+    #[tokio::test]
+    async fn fetch_posts_handles_map_response() {
+        let response = r#"{
+            "posts": [{"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null}],
+            "total": 1, "limit": 50, "offset": 0
+        }"#;
+        let client = MockClient {
+            response: response.to_string(),
+        };
+        let config = test_config();
+
+        let posts = fetch_posts("https://base", &config, &client).await.unwrap();
+        assert_eq!(posts.len(), 1);
+        assert_eq!(posts[0].slug, "slug1");
+    }
+
+    #[tokio::test]
+    async fn fetch_posts_handles_array_response() {
+        let response = r#"[
+            {"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null},
+            {"id": 2, "slug": "slug2", "title": "T2", "description": "D2", "body_html": null, "post_date": "2024-01-02", "canonical_url": "u2", "cover_image": null}
+        ]"#;
+        let client = MockClient {
+            response: response.to_string(),
+        };
+        let config = test_config();
+
+        let posts = fetch_posts("https://base", &config, &client).await.unwrap();
+        assert_eq!(posts.len(), 2);
+        assert_eq!(posts[1].slug, "slug2");
+    }
+
+    #[tokio::test]
+    async fn fetch_posts_respects_limit() {
+        let response = r#"[
+            {"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null},
+            {"id": 2, "slug": "slug2", "title": "T2", "description": "D2", "body_html": null, "post_date": "2024-01-02", "canonical_url": "u2", "cover_image": null}
+        ]"#;
+        let client = MockClient {
+            response: response.to_string(),
+        };
+        let mut config = test_config();
+        config.limit = Some(1);
+
+        let posts = fetch_posts("https://base", &config, &client).await.unwrap();
+        assert_eq!(posts.len(), 1);
+        assert_eq!(posts[0].slug, "slug1");
+    }
 }
