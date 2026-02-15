@@ -21,3 +21,28 @@ target/
 
 # Agent
 .agent/
+
+# Environment variables (secrets)
+.env
+
+# Test artifacts & coverage
+tarpaulin-report.html
+cobertura.xml
+lcov.info
+*.profraw
+*.profdata
+
+# Temporary test directories (tempfile crate)
+tmp/
+
+# Fuzz testing artifacts
+fuzz/artifacts/
+fuzz/corpus/
+
+# Python test caches (validation scripts)
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Project specific
+manifest.json
