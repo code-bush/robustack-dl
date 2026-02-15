@@ -4,18 +4,26 @@
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3%20%2B%20Commercial-blue.svg)](LICENSE)
 [![CI](https://github.com/code-bush/robustack-dl/actions/workflows/ci.yml/badge.svg)](https://github.com/code-bush/robustack-dl/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/robustack-dl.svg)](https://crates.io/crates/robustack-dl)
 [![Snyk Security](https://snyk.io/test/github/code-bush/robustack-dl/badge.svg)](https://snyk.io/test/github/code-bush/robustack-dl)
 [![SLSA 3](https://slsa.dev/images/gh-badge-level3.svg)](https://slsa.dev)
 [![Rust](https://img.shields.io/badge/Rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
-**RoBustack-DL** is a tool for digital repair, cybersecurity awareness, and resilience against mis/dis/malinformation. It allows you to archive and audit web content with integrity.
+**RoBuStack-DL** is a tool for digital repair, cybersecurity awareness, and resilience against mis/dis/malinformation. It allows you to archive and audit web content with integrity.
 
 ---
 
 ## Installation
 
+### Universal (via Cargo)
+If you have [Rust](https://www.rust-lang.org/tools/install) installed, you can install the latest release directly from Crates.io:
+
+```bash
+cargo install robustack-dl
+```
+
 ### Pre-built Binaries (Linux)
-Download the latest binary from the [Releases](https://github.com/codebush/robustack-dl/releases) page.
+Download the latest binary from the [Releases](https://github.com/code-bush/robustack-dl/releases) page.
 
 ```bash
 chmod +x robustack-dl
@@ -35,7 +43,7 @@ sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl
 cargo install robustack-dl
 
 # OR build from source
-git clone https://github.com/codebush/robustack-dl.git
+git clone https://github.com/code-bush/robustack-dl.git
 cd robustack-dl
 cargo build --release
 ```
