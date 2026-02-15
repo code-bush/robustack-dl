@@ -40,24 +40,77 @@ RoBustack-DL v1.0.0
 [GPLv3 + Commercial License]
 ```
 
+---
+
 ### Download content
 ```bash
-robustack-dl download --url https://example.com --output ./archive
+# Basic download (HTML format, current directory)
+robustack-dl download --url https://example.substack.com
+
+# Download as Markdown with images
+robustack-dl download \
+  --url https://example.substack.com \
+  --output ./archive \
+  --format md \
+  --download-images \
+  --image-quality high
+
+# Full-featured download with all options
+robustack-dl \
+  --verbose \
+  --rate 5 \
+  --after 2024-01-01 \
+  --before 2025-12-31 \
+  --cookie-name substack.sid \
+  --cookie-val "$SUBSTACK_TOKEN" \
+  download \
+    --url https://example.substack.com \
+    --output ./archive \
+    --format md \
+    --download-images \
+    --download-files \
+    --file-extensions "pdf,epub" \
+    --add-source-url \
+    --create-archive
+
+# Dry run — preview what would be downloaded
+robustack-dl download --url https://example.substack.com --dry-run
 ```
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-u, --url` | Target URL to download | *required* |
-| `-o, --output` | Output directory | `.` |
+#### Download flags
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--url <URL>` | `-u` | Substack URL to download | *required* |
+| `--output <DIR>` | `-o` | Output directory | `.` |
+| `--format <FMT>` | `-f` | Output format: `html`, `md`, `txt` | `html` |
+| `--dry-run` | `-n` | Preview mode — no files written | `false` |
+| `--download-images` | | Download images locally | `false` |
+| `--images-dir <DIR>` | | Image subdirectory name | `images` |
+| `--image-quality <Q>` | | Image quality: `high`, `medium`, `low` | `high` |
+| `--download-files` | | Download file attachments locally | `false` |
+| `--files-dir <DIR>` | | Attachment subdirectory name | `files` |
+| `--file-extensions <LIST>` | | Comma-separated extension allowlist | *(all)* |
+| `--add-source-url` | | Append source URL to each file | `false` |
+| `--create-archive` | | Generate an archive index page | `false` |
+
+---
 
 ### Audit archive integrity
 ```bash
 robustack-dl audit --manifest ./archive/manifest.json
 ```
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-m, --manifest` | Path to manifest.json | `manifest.json` |
+The audit command verifies every file in the archive against its SHA-256 hash in the manifest. Reports:
+- ✅ Files that match their expected hash
+- ❌ Hash mismatches (possible corruption)
+- ⚠️ Missing files
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--manifest <PATH>` | `-m` | Path to `manifest.json` | `manifest.json` |
+
+---
 
 ### Generate shell completions
 ```bash
@@ -71,18 +124,84 @@ robustack-dl completions --shell zsh > ~/.zfunc/_robustack-dl
 robustack-dl completions --shell fish > ~/.config/fish/completions/robustack-dl.fish
 ```
 
-### Global options
-| Flag | Description |
-|------|-------------|
-| `-c, --config <PATH>` | Path to a `config.toml` override |
-| `-V, --version` | Print version banner |
-| `-h, --help` | Print help |
+---
+
+### Global flags
+
+| Flag | Short | Description | Default |
+|------|-------|-------------|---------|
+| `--verbose` | `-v` | Enable debug-level logging | `false` |
+| `--proxy <URL>` | `-x` | HTTP/SOCKS5 proxy URL | *none* |
+| `--rate <N>` | `-r` | Max requests per second | `2` |
+| `--after <DATE>` | | Only process posts after this date | *none* |
+| `--before <DATE>` | | Only process posts before this date | *none* |
+| `--cookie-name <NAME>` | | Cookie name for Substack auth | *none* |
+| `--cookie-val <VALUE>` | | Cookie value (use env var `ROBUSTACK_COOKIE_VAL`) | *none* |
+| `--config <PATH>` | `-c` | Path to `config.toml` override | *none* |
+| `--version` | `-V` | Print version banner | |
+| `--help` | `-h` | Print help | |
+
+> **Security tip:** Use the `ROBUSTACK_COOKIE_VAL` environment variable instead of passing the cookie value on the command line, to avoid leaking it in shell history.
 
 ### Logging
-RoBustack-DL uses structured logging via `tracing`. Control verbosity with `RUST_LOG`:
+RoBustack-DL uses structured logging via `tracing`. Control verbosity with `--verbose` or `RUST_LOG`:
 ```bash
+# Via flag
+robustack-dl --verbose download --url https://example.com
+
+# Via environment variable (fine-grained control)
 RUST_LOG=debug robustack-dl download --url https://example.com
 ```
+
+---
+
+## Architecture
+
+RoBustack-DL follows **clean architecture** with unidirectional dependency flow:
+
+```
+Presentation (CLI)  →  Application (Handlers)  →  Domain (Integrity, Processor)
+                                                        ↑
+                                            Infrastructure (HttpClient)
+```
+
+| Layer | Modules | Responsibility |
+|-------|---------|----------------|
+| **Presentation** | `cli/` | Argument parsing via `clap` — no business logic |
+| **Application** | `handlers/`, `config/` | Orchestration; receives `AppConfig` + `&dyn HttpClient` |
+| **Domain** | `integrity/`, `processor/` | Pure business logic: hashing, manifests, content transforms |
+| **Infrastructure** | `client/` | `HttpClient` trait + `ReqwestClient` impl (swappable) |
+
+### Idempotency
+Every download is **idempotent**: content is SHA-256 hashed, stored under content-addressed filenames, and tracked in `manifest.json`. Re-running the same command produces zero new I/O.
+
+---
+
+## Testing
+
+```bash
+# Run all tests (unit + integration + non-functional)
+cargo test
+
+# Run only unit tests
+cargo test --lib
+
+# Run only integration tests
+cargo test --test cli_integration
+
+# Run non-functional tests (performance, binary size, provenance)
+cargo test --test nonfunctional
+
+# Run with verbose output
+cargo test -- --nocapture
+```
+
+### Test categories
+| Suite | Count | What it covers |
+|-------|-------|----------------|
+| Unit tests | 63 | CLI parsing, AppConfig, HttpClient, Manifest, Processor |
+| Integration tests | 30 | End-to-end binary: flags, exit codes, error messages |
+| Non-functional tests | 8 | Startup time, binary size, provenance headers, no unsafe/println |
 
 ---
 

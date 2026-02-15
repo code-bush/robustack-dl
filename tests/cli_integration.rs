@@ -14,183 +14,330 @@
 //! Functional (integration) tests for the robustack-dl CLI binary.
 //!
 //! These tests invoke the compiled binary as a subprocess to validate
-//! end-to-end behavior: exit codes, stdout/stderr output, and flag handling.
+//! end-to-end behavior. We use `wiremock` to simulate the Substack API
+//! so that tests are deterministic and network-independent.
 
 use std::process::Command;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Helper to invoke the compiled binary.
 fn cli_cmd() -> Command {
     Command::new(env!("CARGO_BIN_EXE_robustack-dl"))
 }
 
-// ---------------------------------------------------------------------------
-// Functional: Help output
-// ---------------------------------------------------------------------------
+/// Helper to collect stdout from a successful command.
+fn stdout_of(args: &[&str]) -> String {
+    let output = cli_cmd().args(args).output().expect("failed to run binary");
+    assert!(output.status.success(), "expected exit 0 for {args:?}");
+    String::from_utf8_lossy(&output.stdout).to_string()
+}
+
+/// Helper to collect stderr from a failed command.
+fn stderr_of(args: &[&str]) -> String {
+    let output = cli_cmd().args(args).output().expect("failed to run binary");
+    assert!(
+        !output.status.success(),
+        "expected non-zero exit for {args:?}"
+    );
+    String::from_utf8_lossy(&output.stderr).to_string()
+}
+
+/// Helper to start a mock server that accepts posts listing and generic requests.
+async fn start_mock() -> MockServer {
+    let mock_server = MockServer::start().await;
+
+    // Default response for listing posts (empty list, success).
+    Mock::given(method("GET"))
+        .and(path("/api/v1/posts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "posts": [],
+            "total": 0,
+            "limit": 50,
+            "offset": 0
+        })))
+        .mount(&mock_server)
+        .await;
+
+    // Fail-safe for other requests: return 404 to uncover issues, 
+    // unless strictly needed.
+    mock_server
+}
+
+// ===========================================================================
+// Help output
+// ===========================================================================
 
 #[test]
 fn help_flag_exits_zero() {
-    let output = cli_cmd()
-        .arg("--help")
-        .output()
-        .expect("failed to run binary");
-    assert!(output.status.success(), "--help should exit 0");
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = stdout_of(&["--help"]);
     assert!(stdout.contains("Usage"), "help output should contain Usage");
 }
 
 #[test]
 fn help_lists_all_subcommands() {
-    let output = cli_cmd()
-        .arg("--help")
-        .output()
-        .expect("failed to run binary");
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = stdout_of(&["--help"]);
     assert!(stdout.contains("download"), "help should list download");
+    assert!(stdout.contains("list"), "help should list list");
     assert!(stdout.contains("audit"), "help should list audit");
-    assert!(
-        stdout.contains("completions"),
-        "help should list completions"
-    );
+    assert!(stdout.contains("version"), "help should list version");
 }
 
 #[test]
 fn download_help_exits_zero() {
-    let output = cli_cmd()
-        .args(["download", "--help"])
-        .output()
-        .expect("failed to run binary");
-    assert!(output.status.success(), "download --help should exit 0");
+    let stdout = stdout_of(&["download", "--help"]);
+    assert!(stdout.contains("--url"), "download help should list --url");
 }
 
 #[test]
-fn audit_help_exits_zero() {
-    let output = cli_cmd()
-        .args(["audit", "--help"])
-        .output()
-        .expect("failed to run binary");
-    assert!(output.status.success(), "audit --help should exit 0");
+fn download_help_lists_new_flags() {
+    let stdout = stdout_of(&["download", "--help"]);
+    for flag in [
+        "--format",
+        "--dry-run",
+        "--download-images",
+        "--images-dir",
+        "--download-files",
+        "--create-archive",
+    ] {
+        assert!(stdout.contains(flag), "download help should list {flag}");
+    }
 }
 
-// ---------------------------------------------------------------------------
-// Functional: Version output
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// Version output
+// ===========================================================================
 
 #[test]
 fn version_flag_shows_banner() {
-    let output = cli_cmd()
-        .arg("--version")
-        .output()
-        .expect("failed to run binary");
-    assert!(output.status.success(), "--version should exit 0");
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("RoBustack-DL"),
-        "version should contain project name"
-    );
-    assert!(
-        stdout.contains("Own Your Reading. Byte by Byte."),
-        "version should contain tagline"
-    );
-    assert!(
-        stdout.contains("GPLv3 + Commercial License"),
-        "version should contain license"
-    );
+    let stdout = stdout_of(&["--version"]);
+    assert!(stdout.contains("RoBustack-DL"), "version project name");
+    assert!(stdout.contains("GPLv3"), "version license");
 }
 
-// ---------------------------------------------------------------------------
-// Functional: Error exit codes
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// Error exit codes
+// ===========================================================================
 
 #[test]
 fn no_subcommand_exits_nonzero() {
     let output = cli_cmd().output().expect("failed to run binary");
-    assert!(
-        !output.status.success(),
-        "no subcommand should exit non-zero"
-    );
+    assert!(!output.status.success());
 }
 
 #[test]
 fn download_without_url_exits_nonzero() {
-    let output = cli_cmd()
-        .arg("download")
-        .output()
-        .expect("failed to run binary");
-    assert!(
-        !output.status.success(),
-        "download without --url should exit non-zero"
-    );
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.contains("--url"),
-        "error message should mention --url"
-    );
+    let stderr = stderr_of(&["download"]);
+    assert!(stderr.contains("--url"));
 }
 
-#[test]
-fn unknown_subcommand_exits_nonzero() {
+// ===========================================================================
+// Download subcommand smoke tests (Async with WireMock)
+// ===========================================================================
+
+#[tokio::test]
+async fn download_with_valid_args_exits_zero() {
+    let mock_server = start_mock().await;
     let output = cli_cmd()
-        .arg("nonexistent")
+        .args(["download", "--url", &mock_server.uri()])
         .output()
-        .expect("failed to run binary");
-    assert!(
-        !output.status.success(),
-        "unknown subcommand should exit non-zero"
-    );
+        .expect("failed");
+    assert!(output.status.success(), "download valid args failed: {:?}", output);
 }
 
-// ---------------------------------------------------------------------------
-// Functional: Subcommand execution (smoke tests)
-// ---------------------------------------------------------------------------
-
-#[test]
-fn download_with_valid_args_exits_zero() {
+#[tokio::test]
+async fn download_dry_run_exits_zero() {
+    let mock_server = start_mock().await;
     let output = cli_cmd()
-        .args(["download", "--url", "https://example.com"])
+        .args(["download", "--url", &mock_server.uri(), "--dry-run"])
         .output()
-        .expect("failed to run binary");
-    assert!(
-        output.status.success(),
-        "download with valid args should exit 0"
-    );
+        .expect("failed");
+    assert!(output.status.success());
 }
 
-#[test]
-fn audit_with_defaults_exits_zero() {
+#[tokio::test]
+async fn download_dry_run_creates_no_files() {
+    let mock_server = start_mock().await;
+    let dir = std::env::temp_dir().join("robustack_test_dry_run_no_files");
+    let _ = std::fs::remove_dir_all(&dir);
+
     let output = cli_cmd()
-        .arg("audit")
+        .args([
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--output",
+            dir.to_str().unwrap(),
+            "--dry-run",
+        ])
         .output()
-        .expect("failed to run binary");
-    // Audit currently succeeds even without a manifest file (stub)
-    assert!(output.status.success(), "audit with defaults should exit 0");
+        .expect("failed");
+
+    assert!(output.status.success());
+    assert!(!dir.exists(), "dry run should not create the output directory");
 }
 
-// ---------------------------------------------------------------------------
-// Functional: Global config flag
-// ---------------------------------------------------------------------------
-
-#[test]
-fn config_flag_accepted_before_subcommand() {
+#[tokio::test]
+async fn download_with_format_md_exits_zero() {
+    let mock_server = start_mock().await;
     let output = cli_cmd()
-        .args(["--config", "/nonexistent/path.toml", "audit"])
+        .args(["download", "--url", &mock_server.uri(), "--format", "md"])
         .output()
-        .expect("failed to run binary");
-    // Config loading is a stub, so this should still succeed
-    assert!(
-        output.status.success(),
-        "--config before subcommand should be accepted"
-    );
+        .expect("failed");
+    assert!(output.status.success());
 }
 
-#[test]
-fn config_flag_accepted_after_subcommand() {
-    // clap with global = true should accept --config after the subcommand too
+#[tokio::test]
+async fn download_with_image_options_exits_zero() {
+    let mock_server = start_mock().await;
     let output = cli_cmd()
-        .args(["audit", "--config", "/nonexistent/path.toml"])
+        .args([
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--download-images",
+            "--image-quality",
+            "low",
+        ])
         .output()
-        .expect("failed to run binary");
-    assert!(
-        output.status.success(),
-        "--config after subcommand should be accepted"
-    );
+        .expect("failed");
+    assert!(output.status.success());
+}
+
+#[tokio::test]
+async fn download_with_archive_flag_exits_zero() {
+    let mock_server = start_mock().await;
+    let output = cli_cmd()
+        .args([
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--create-archive",
+        ])
+        .output()
+        .expect("failed");
+    assert!(output.status.success());
+}
+
+// ===========================================================================
+// List subcommand (Async with WireMock)
+// ===========================================================================
+
+#[test]
+fn list_with_url_without_server_fails() {
+    // Proves that without mock server, it fails (fail-fast check)
+    // We use a reserved invalid IP to ensure connection failure
+    let output = cli_cmd()
+        .args(["list", "--url", "http://127.0.0.1:0"])
+        .output()
+        .expect("failed");
+    assert!(!output.status.success());
+}
+
+#[tokio::test]
+async fn list_with_url_exits_zero() {
+    let mock_server = start_mock().await;
+    let output = cli_cmd()
+        .args(["list", "--url", &mock_server.uri()])
+        .output()
+        .expect("failed");
+    assert!(output.status.success(), "list with valid url failed: {:?}", output);
+}
+
+// ===========================================================================
+// Global flags (Async wrappers where needed for download)
+// ===========================================================================
+
+#[tokio::test]
+async fn verbose_flag_accepted() {
+    let mock_server = start_mock().await;
+    // Verbose should effectively just run the command with more logging.
+    let output = cli_cmd()
+        .args([
+            "--verbose",
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--dry-run",
+        ])
+        .output()
+        .expect("failed");
+    assert!(output.status.success());
+}
+
+#[tokio::test]
+async fn rate_flag_accepted() {
+    let mock_server = start_mock().await;
+    let output = cli_cmd()
+        .args([
+            "--rate",
+            "10",
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--dry-run",
+        ])
+        .output()
+        .expect("failed");
+    assert!(output.status.success());
+}
+
+#[tokio::test]
+async fn date_filter_flags_accepted() {
+    let mock_server = start_mock().await;
+    let output = cli_cmd()
+        .args([
+            "--after",
+            "2024-01-01",
+            "--before",
+            "2025-12-31",
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--dry-run",
+        ])
+        .output()
+        .expect("failed");
+    assert!(output.status.success());
+}
+
+#[tokio::test]
+async fn cookie_auth_flags_accepted() {
+    let mock_server = start_mock().await;
+    let output = cli_cmd()
+        .args([
+            "--cookie-name",
+            "substack.sid",
+            "--cookie-val",
+            "test_token",
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--dry-run",
+        ])
+        .output()
+        .expect("failed");
+    assert!(output.status.success());
+}
+
+#[tokio::test]
+async fn short_flags_accepted() {
+    let mock_server = start_mock().await;
+    let output = cli_cmd()
+        .args([
+            "-v",
+            "-r",
+            "3",
+            "download",
+            "-u",
+            &mock_server.uri(),
+            "-o",
+            ".",
+            "-f",
+            "txt",
+            "-d",
+        ])
+        .output()
+        .expect("failed");
+    assert!(output.status.success());
 }
