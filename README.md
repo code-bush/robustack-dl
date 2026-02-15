@@ -1,4 +1,4 @@
-# RoBustack-DL
+# RoBuStack-DL
 
 > **"Own Your Reading. Byte by Byte."**
 
