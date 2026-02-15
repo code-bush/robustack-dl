@@ -15,7 +15,7 @@
 ## Installation
 
 ### Pre-built Binaries (Linux)
-Download the latest binary from the [Releases](https://github.com/codebush-collective/robustack-dl/releases) page.
+Download the latest binary from the [Releases](https://github.com/codebush/robustack-dl/releases) page.
 
 ```bash
 chmod +x robustack-dl
@@ -35,7 +35,7 @@ sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl
 cargo install robustack-dl
 
 # OR build from source
-git clone https://github.com/codebush-collective/robustack-dl.git
+git clone https://github.com/codebush/robustack-dl.git
 cd robustack-dl
 cargo build --release
 ```
