@@ -18,6 +18,11 @@
 //! - Tracing subscriber initialization failure
 //! - Subcommand execution failure (I/O, network, integrity mismatch)
 
+// Provenance headers use proper nouns (e.g. CodeBush) that are not code identifiers.
+#![allow(clippy::doc_markdown)]
+// Stub modules are scaffolded but not yet wired to subcommands.
+#![allow(dead_code)]
+
 use tracing::info;
 
 mod cli;
