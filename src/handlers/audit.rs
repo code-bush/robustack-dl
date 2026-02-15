@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn audit_empty_manifest_succeeds() {
-        let dir = std::env::temp_dir().join("robustack_test_audit_empty");
+        let dir = std::path::PathBuf::from("target/robustack_test_audit_empty");
         let _ = std::fs::create_dir_all(&dir);
 
         // Write an empty manifest.
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn audit_valid_file_passes() {
-        let dir = std::env::temp_dir().join("robustack_test_audit_valid");
+        let dir = std::path::PathBuf::from("target/robustack_test_audit_valid");
         let _ = std::fs::create_dir_all(&dir);
 
         let content = b"test content for audit";
@@ -172,7 +172,7 @@ mod tests {
 
     #[test]
     fn audit_corrupted_file_fails() {
-        let dir = std::env::temp_dir().join("robustack_test_audit_corrupt");
+        let dir = std::path::PathBuf::from("target/robustack_test_audit_corrupt");
         let _ = std::fs::create_dir_all(&dir);
 
         std::fs::write(dir.join("test.html"), b"corrupted content").unwrap();
@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn audit_missing_file_fails() {
-        let dir = std::env::temp_dir().join("robustack_test_audit_missing");
+        let dir = std::path::PathBuf::from("target/robustack_test_audit_missing");
         let _ = std::fs::create_dir_all(&dir);
 
         let mut m = Manifest::default();

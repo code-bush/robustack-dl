@@ -48,7 +48,9 @@ pub fn generate_index(posts: &[SubstackPost], config: &AppConfig) -> anyhow::Res
     html.push_str("li { padding: 0.5rem 0; border-bottom: 1px solid #f0f0f0; }\n");
     html.push_str("a { text-decoration: none; color: #0066cc; font-weight: 500; }\n");
     html.push_str("a:hover { text-decoration: underline; }\n");
-    html.push_str(".date { color: #666; font-size: 0.9em; margin-right: 1rem; font-family: monospace; }\n");
+    html.push_str(
+        ".date { color: #666; font-size: 0.9em; margin-right: 1rem; font-family: monospace; }\n",
+    );
     html.push_str("</style>\n");
     html.push_str("</head>\n<body>\n");
     html.push_str("<h1>Archive Index</h1>\n");
@@ -58,8 +60,12 @@ pub fn generate_index(posts: &[SubstackPost], config: &AppConfig) -> anyhow::Res
         let safe_slug = integrity::sanitize_filename(&post.slug);
         let filename = format!("{safe_slug}.{ext}");
         // Escape HTML in title (basic)
-        let title = post.title.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
-        
+        let title = post
+            .title
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;");
+
         html.push_str("<li>\n");
         html.push_str(&format!("<span class=\"date\">{}</span>", post.post_date));
         html.push_str(&format!("<a href=\"{filename}\">{title}</a>"));
