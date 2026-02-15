@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
@@ -22,7 +25,7 @@ jobs:
         run: ls -R
 
       - name: Snyk Test
-        run: snyk test --file=Cargo.lock --severity-threshold=high
+        run: snyk test --file=Cargo.toml --severity-threshold=high
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -38,9 +41,6 @@ jobs:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: ${{ github.event.pull_request.head.sha }}
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Install cargo-audit
         run: cargo install cargo-audit
