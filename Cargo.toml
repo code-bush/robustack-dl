@@ -6,6 +6,10 @@ rust-version = "1.88"
 description = "Own Your Reading. Byte by Byte."
 authors = ["CodeBush Collective"]
 license = "GPL-3.0-only"
+repository = "https://github.com/code-bush/robustack-dl.git"
+readme = "README.md"
+keywords = ["substack", "archive", "downloader", "hashing"]
+categories = ["command-line-utilities", "web-programming::http-client"]
 
 [dependencies]
 # Async runtime — only the features we actually use.
