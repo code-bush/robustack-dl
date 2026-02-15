@@ -33,12 +33,14 @@ jobs:
         run: npm install -g snyk
 
       - name: Snyk Code Scan
-        run: snyk code test --severity-threshold=high
+        if: env.SNYK_TOKEN != ''
+        run: snyk code test --severity-threshold=high --org=${{ secrets.SNYK_ORG }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: Snyk SBOM Scan
-        run: snyk sbom test --file=robustack-dl.cdx.json --severity-threshold=high
+        if: env.SNYK_TOKEN != ''
+        run: snyk sbom test --file=robustack-dl.cdx.json --severity-threshold=high --org=${{ secrets.SNYK_ORG }}
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
