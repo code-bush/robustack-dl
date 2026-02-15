@@ -27,9 +27,13 @@ jobs:
       - name: Install Snyk CLI
         run: npm install -g snyk
 
+      - name: Snyk Code Scan
+        run: snyk code test --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
       - name: Snyk SBOM Scan
         run: snyk sbom test --file=robustack-dl.cdx.json --severity-threshold=high
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
