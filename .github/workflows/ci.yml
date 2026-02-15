@@ -116,7 +116,7 @@ jobs:
 
       - name: Upload Binary for Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: robustack-dl
           path: target/release/robustack-dl
