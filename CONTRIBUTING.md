@@ -62,7 +62,7 @@ RoBustack-DL follows **clean architecture** with strict unidirectional dependenc
 ### Initialize the Defensive Layer
 ```bash
 # Clone and enter the repo
-git clone https://github.com/codebush/robustack-dl.git
+git clone https://github.com/code-bush/robustack-dl.git
 cd robustack-dl
 
 # Install pre-commit hooks (pre-commit + commit-msg stages)
