@@ -19,7 +19,7 @@ jobs:
       matrix:
         target: [parse_url, parse_manifest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust nightly (required by cargo-fuzz)
         uses: dtolnay/rust-toolchain@nightly
