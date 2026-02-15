@@ -25,7 +25,7 @@ jobs:
         run: ls -R
 
       - name: Snyk Test
-        run: snyk test --file=Cargo.toml --severity-threshold=high
+        run: snyk test --file=Cargo.toml --package-manager=cargo --severity-threshold=high --debug
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
