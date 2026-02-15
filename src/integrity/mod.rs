@@ -106,6 +106,7 @@ impl Manifest {
 
         // Open via the *canonical* path so the descriptor is guaranteed to
         // point at the validated location.
+        // nosemgrep: rust.lang.security.filesystem.path-traversal.path-traversal-open.path-traversal-open
         let mut file = std::fs::File::open(&canonical_path)
             .map_err(|e| anyhow::anyhow!("Cannot open {}: {e}", canonical_path.display()))?;
 
@@ -366,6 +367,7 @@ pub fn verify_file(
     }
 
     // Open the *resolved* path.
+    // nosemgrep: rust.lang.security.filesystem.path-traversal.path-traversal-open.path-traversal-open
     let mut file = std::fs::File::open(&canonical_file)
         .map_err(|e| anyhow::anyhow!("Cannot open {}: {e}", canonical_file.display()))?;
 
