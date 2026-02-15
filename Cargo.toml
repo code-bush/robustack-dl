@@ -3,7 +3,7 @@ name = "robustack-dl"
 version = "1.0.0"
 edition = "2024"
 rust-version = "1.88"
-description = "Robust Rust SubStack Downloader; Own Your Reading. Byte by Byte."
+description = "Robust Rust SubStack Downloader;  Own Your Reading. Byte by Byte."
 authors = ["CodeBush Collective"]
 license = "GPL-3.0-only"
 repository = "https://github.com/code-bush/robustack-dl.git"
@@ -44,7 +44,7 @@ figment = { version = "0.10", features = ["toml", "env"] }
 secrecy = { version = "0.10", features = ["serde"] }
 
 # Rate-limiting with jitter.
-governor = "0.7"
+governor = "0.10"
 
 # Async trait support for dyn-dispatch of HttpClient.
 async-trait = "0.1"
@@ -54,7 +54,7 @@ sha2 = "0.10"
 hex = "0.4"
 
 # HTML → plain-text / markdown conversion (pure Rust, no external deps).
-html2text = "0.14"
+html2text = "0.16"
 
 # Regex for extracting image/file URLs from HTML.
 regex = "1.10"
