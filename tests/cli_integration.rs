@@ -29,7 +29,10 @@ fn cli_cmd() -> Command {
 
 #[test]
 fn help_flag_exits_zero() {
-    let output = cli_cmd().arg("--help").output().expect("failed to run binary");
+    let output = cli_cmd()
+        .arg("--help")
+        .output()
+        .expect("failed to run binary");
     assert!(output.status.success(), "--help should exit 0");
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Usage"), "help output should contain Usage");
@@ -37,11 +40,17 @@ fn help_flag_exits_zero() {
 
 #[test]
 fn help_lists_all_subcommands() {
-    let output = cli_cmd().arg("--help").output().expect("failed to run binary");
+    let output = cli_cmd()
+        .arg("--help")
+        .output()
+        .expect("failed to run binary");
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("download"), "help should list download");
     assert!(stdout.contains("audit"), "help should list audit");
-    assert!(stdout.contains("completions"), "help should list completions");
+    assert!(
+        stdout.contains("completions"),
+        "help should list completions"
+    );
 }
 
 #[test]
@@ -68,7 +77,10 @@ fn audit_help_exits_zero() {
 
 #[test]
 fn version_flag_shows_banner() {
-    let output = cli_cmd().arg("--version").output().expect("failed to run binary");
+    let output = cli_cmd()
+        .arg("--version")
+        .output()
+        .expect("failed to run binary");
     assert!(output.status.success(), "--version should exit 0");
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -150,10 +162,7 @@ fn audit_with_defaults_exits_zero() {
         .output()
         .expect("failed to run binary");
     // Audit currently succeeds even without a manifest file (stub)
-    assert!(
-        output.status.success(),
-        "audit with defaults should exit 0"
-    );
+    assert!(output.status.success(), "audit with defaults should exit 0");
 }
 
 // ---------------------------------------------------------------------------

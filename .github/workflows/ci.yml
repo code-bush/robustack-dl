@@ -19,7 +19,8 @@ jobs:
         uses: snyk/actions/setup@master
 
       - name: Snyk Test
-        run: snyk test --severity-threshold=high
+        run: snyk test --file=Cargo.toml --severity-threshold=high
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 

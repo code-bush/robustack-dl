@@ -79,10 +79,7 @@ fn binary_exists_and_is_reasonable_size() {
     );
 
     // And should exist (not be empty).
-    assert!(
-        metadata.len() > 0,
-        "binary should not be empty"
-    );
+    assert!(metadata.len() > 0, "binary should not be empty");
 }
 
 // ---------------------------------------------------------------------------
@@ -102,10 +99,7 @@ fn error_messages_go_to_stderr_not_stdout() {
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     // Error messages should be on stderr, not stdout.
-    assert!(
-        !stderr.is_empty(),
-        "error output should appear on stderr"
-    );
+    assert!(!stderr.is_empty(), "error output should appear on stderr");
     assert!(
         stdout.is_empty(),
         "stdout should be empty on error, got: {stdout}"
@@ -186,12 +180,7 @@ fn no_unsafe_in_source_files() {
                         continue;
                     }
                     if trimmed.contains("unsafe ") {
-                        violations.push(format!(
-                            "{}:{}: {}",
-                            path.display(),
-                            i + 1,
-                            trimmed
-                        ));
+                        violations.push(format!("{}:{}: {}", path.display(), i + 1, trimmed));
                     }
                 }
             }
@@ -230,12 +219,7 @@ fn no_println_in_source_files() {
                         continue;
                     }
                     if trimmed.contains("println!") {
-                        violations.push(format!(
-                            "{}:{}: {}",
-                            path.display(),
-                            i + 1,
-                            trimmed
-                        ));
+                        violations.push(format!("{}:{}: {}", path.display(), i + 1, trimmed));
                     }
                 }
             }

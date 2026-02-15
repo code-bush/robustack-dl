@@ -61,6 +61,9 @@ mod tests {
     fn client_implements_debug() {
         let client = Client::new();
         let debug_str = format!("{client:?}");
-        assert!(debug_str.contains("Client"), "Debug output should contain type name");
+        assert!(
+            debug_str.contains("Client"),
+            "Debug output should contain type name"
+        );
     }
 }
