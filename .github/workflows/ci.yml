@@ -18,14 +18,17 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx
+
+      - name: Generate SBOM
+        run: cargo cyclonedx --format json
+
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      - name: Debug - List files
-        run: ls -R
-
-      - name: Snyk Test
-        run: snyk test --file=Cargo.toml --package-manager=cargo --severity-threshold=high --debug
+      - name: Snyk SBOM Scan
+        run: snyk sbom test --file=robustack-dl.cdx.json --severity-threshold=high
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
