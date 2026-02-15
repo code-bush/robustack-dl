@@ -18,6 +18,7 @@ use crate::handlers::substack::SubstackPost;
 use crate::integrity;
 use anyhow::Context;
 use std::io::Write;
+use std::fmt::Write as _;
 use tracing::info;
 
 /// Generate an index file (index.html) listing all available posts.
@@ -67,21 +68,21 @@ pub fn generate_index(posts: &[SubstackPost], config: &AppConfig) -> anyhow::Res
             .replace('>', "&gt;");
 
         html.push_str("<li>\n");
-        html.push_str(&format!("<span class=\"date\">{}</span>", post.post_date));
-        html.push_str(&format!("<a href=\"{filename}\">{title}</a>"));
+        let _ = write!(html, "<span class=\"date\">{}</span>", post.post_date);
+        let _ = write!(html, "<a href=\"{filename}\">{title}</a>");
         html.push_str("</li>\n");
     }
 
     html.push_str("</ul>\n");
     html.push_str("</body>\n</html>");
 
-    if !config.dry_run {
+    if config.dry_run {
+        info!("Dry run: would save index.html");
+    } else {
         let path = config.output_dir.join("index.html");
         let mut file = std::fs::File::create(&path).context("Failed to create index.html")?;
         file.write_all(html.as_bytes())?;
         info!(path = %path.display(), "Saved archive index");
-    } else {
-        info!("Dry run: would save index.html");
     }
 
     Ok(())

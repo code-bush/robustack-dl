@@ -75,10 +75,6 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
     let posts = crate::handlers::substack::fetch_posts(url, config, client).await?;
     info!(count = posts.len(), "Found posts");
 
-    // Regex for assets
-    let img_regex = Regex::new(r#"<img[^>]+src="([^"]+)"[^>]*>"#).expect("invalid regex");
-    let link_regex = Regex::new(r#"<a[^>]+href="([^"]+)"[^>]*>"#).expect("invalid regex");
-
     for post in &posts {
         let span = tracing::info_span!("post", slug = %post.slug);
         let _enter = span.enter();
@@ -96,48 +92,12 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
 
         // Step 4: Download images if enabled.
         if config.download_images {
-            // Find all image URLs.
-            for cap in img_regex.captures_iter(&raw_html) {
-                if let Some(src_match) = cap.get(1) {
-                    let src_url = src_match.as_str();
-                    match download_asset(src_url, &config.images_dir, config, client, &mut manifest)
-                        .await
-                    {
-                        Ok(local_path) => {
-                            // This naive rewrite replaces ALL occurrences.
-                            final_html = final_html.replace(src_url, &local_path);
-                        }
-                        Err(e) => warn!(url = %src_url, error = %e, "Failed to download image"),
-                    }
-                }
-            }
+            final_html = process_images(&final_html, config, client, &mut manifest).await;
         }
 
         // Step 5: Download attachments if enabled.
         if config.download_files {
-            for cap in link_regex.captures_iter(&raw_html) {
-                if let Some(href_match) = cap.get(1) {
-                    let href_url = href_match.as_str();
-                    if is_allowed_extension(href_url, &config.file_extensions) {
-                        match download_asset(
-                            href_url,
-                            &config.files_dir,
-                            config,
-                            client,
-                            &mut manifest,
-                        )
-                        .await
-                        {
-                            Ok(local_path) => {
-                                final_html = final_html.replace(href_url, &local_path);
-                            }
-                            Err(e) => {
-                                warn!(url = %href_url, error = %e, "Failed to download attachment")
-                            }
-                        }
-                    }
-                }
-            }
+            final_html = process_attachments(&final_html, config, client, &mut manifest).await;
         }
 
         // Step 6: Transform to target format.
@@ -252,6 +212,56 @@ async fn download_asset(
     });
 
     Ok(sub_path.to_string_lossy().to_string())
+}
+
+async fn process_images(
+    html: &str,
+    config: &AppConfig,
+    client: &dyn HttpClient,
+    manifest: &mut Manifest,
+) -> String {
+    let img_regex = Regex::new(r#"<img[^>]+src="([^"]+)"[^>]*>"#).expect("invalid regex");
+    let mut final_html = html.to_string();
+
+    for cap in img_regex.captures_iter(html) {
+        if let Some(src_match) = cap.get(1) {
+            let src_url = src_match.as_str();
+            match download_asset(src_url, &config.images_dir, config, client, manifest).await {
+                Ok(local_path) => {
+                    final_html = final_html.replace(src_url, &local_path);
+                }
+                Err(e) => warn!(url = %src_url, error = %e, "Failed to download image"),
+            }
+        }
+    }
+    final_html
+}
+
+async fn process_attachments(
+    html: &str,
+    config: &AppConfig,
+    client: &dyn HttpClient,
+    manifest: &mut Manifest,
+) -> String {
+    let link_regex = Regex::new(r#"<a[^>]+href="([^"]+)"[^>]*>"#).expect("invalid regex");
+    let mut final_html = html.to_string();
+
+    for cap in link_regex.captures_iter(html) {
+        if let Some(href_match) = cap.get(1) {
+            let href_url = href_match.as_str();
+            if is_allowed_extension(href_url, &config.file_extensions) {
+                match download_asset(href_url, &config.files_dir, config, client, manifest).await {
+                    Ok(local_path) => {
+                        final_html = final_html.replace(href_url, &local_path);
+                    }
+                    Err(e) => {
+                        warn!(url = %href_url, error = %e, "Failed to download attachment");
+                    }
+                }
+            }
+        }
+    }
+    final_html
 }
 
 fn is_allowed_extension(url: &str, allowlist: &str) -> bool {
