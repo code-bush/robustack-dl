@@ -131,3 +131,77 @@ pub async fn fetch_posts(
 
     Ok(all_posts)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::AppConfig;
+    use crate::client::HttpClient;
+
+    #[derive(Debug)]
+    struct MockClient {
+        response: String,
+    }
+
+    #[async_trait::async_trait]
+    impl HttpClient for MockClient {
+        async fn get_bytes(&self, _url: &str) -> anyhow::Result<Vec<u8>> {
+            Ok(vec![])
+        }
+        async fn get_text(&self, _url: &str) -> anyhow::Result<String> {
+            Ok(self.response.clone())
+        }
+        fn rate_limit(&self) -> u32 { 100 }
+    }
+
+    fn test_config() -> AppConfig {
+        use crate::cli::Cli;
+        use clap::Parser;
+        // Minimal valid config
+        let cli = Cli::try_parse_from(["robustack-dl", "download", "--url", "https://x.com"]).unwrap();
+        AppConfig::from_cli(&cli, None, None)
+    }
+
+    #[tokio::test]
+    async fn fetch_posts_handles_map_response() {
+        let response = r#"{
+            "posts": [{"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null}],
+            "total": 1, "limit": 50, "offset": 0
+        }"#;
+        let client = MockClient { response: response.to_string() };
+        let config = test_config();
+
+        let posts = fetch_posts("https://base", &config, &client).await.unwrap();
+        assert_eq!(posts.len(), 1);
+        assert_eq!(posts[0].slug, "slug1");
+    }
+
+    #[tokio::test]
+    async fn fetch_posts_handles_array_response() {
+        let response = r#"[
+            {"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null},
+            {"id": 2, "slug": "slug2", "title": "T2", "description": "D2", "body_html": null, "post_date": "2024-01-02", "canonical_url": "u2", "cover_image": null}
+        ]"#;
+        let client = MockClient { response: response.to_string() };
+        let config = test_config();
+
+        let posts = fetch_posts("https://base", &config, &client).await.unwrap();
+        assert_eq!(posts.len(), 2);
+        assert_eq!(posts[1].slug, "slug2");
+    }
+
+    #[tokio::test]
+    async fn fetch_posts_respects_limit() {
+        let response = r#"[
+            {"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null},
+            {"id": 2, "slug": "slug2", "title": "T2", "description": "D2", "body_html": null, "post_date": "2024-01-02", "canonical_url": "u2", "cover_image": null}
+        ]"#;
+        let client = MockClient { response: response.to_string() };
+        let mut config = test_config();
+        config.limit = Some(1);
+
+        let posts = fetch_posts("https://base", &config, &client).await.unwrap();
+        assert_eq!(posts.len(), 1);
+        assert_eq!(posts[0].slug, "slug1");
+    }
+}
