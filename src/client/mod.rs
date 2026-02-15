@@ -86,10 +86,8 @@ impl ReqwestClient {
                 " (Digital Repair Tool)"
             ));
 
-        if let Some(proxy_url) = proxy {
-            if let Ok(p) = reqwest::Proxy::all(proxy_url) {
-                builder = builder.proxy(p);
-            }
+        if let Some(p) = proxy.and_then(|url| reqwest::Proxy::all(url).ok()) {
+            builder = builder.proxy(p);
         }
 
         if let Some((name, value)) = cookie {

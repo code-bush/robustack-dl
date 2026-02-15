@@ -10,12 +10,9 @@ allow = [
     "BSD-3-Clause",
     "BSD-2-Clause",
     "ISC",
-    "Unicode-DFS-2016",
     "Unicode-3.0",
-    "OpenSSL",
-]
-exceptions = [
-    { allow = ["GPL-3.0"], name = "robustack-dl" },
+    "CDLA-Permissive-2.0",
+    "GPL-3.0-only",
 ]
 confidence-threshold = 0.8
 
