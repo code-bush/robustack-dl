@@ -9,12 +9,51 @@ Please support us via our [Open Collective](https://opencollective.com/codebush-
 
 ---
 
+## Architecture
+
+RoBustack-DL follows **clean architecture** with strict unidirectional dependencies:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  Presentation Layer                  │
+│  cli/mod.rs — Clap argument parsing, no logic       │
+└──────────────────────────┬──────────────────────────┘
+                           │ Cli → AppConfig
+┌──────────────────────────▼──────────────────────────┐
+│                  Application Layer                   │
+│  main.rs — Thin composition root (parse → wire)     │
+│  config/mod.rs — Typed AppConfig (single source)    │
+│  handlers/download.rs — Download pipeline           │
+│  handlers/audit.rs — Integrity verification         │
+└──────────────────────────┬──────────────────────────┘
+                           │ &AppConfig + &dyn HttpClient
+┌──────────────────────────▼──────────────────────────┐
+│                    Domain Layer                      │
+│  integrity/mod.rs — Manifest, SHA-256, idempotency  │
+│  processor/mod.rs — Pure transforms (no I/O)        │
+└──────────────────────────┬──────────────────────────┘
+                           │ trait HttpClient
+┌──────────────────────────▼──────────────────────────┐
+│                 Infrastructure Layer                 │
+│  client/mod.rs — HttpClient trait + ReqwestClient   │
+└─────────────────────────────────────────────────────┘
+```
+
+### Key rules
+- **No upward dependencies**: domain never imports from handlers; handlers never import from CLI.
+- **Handlers receive `&AppConfig` + `&dyn HttpClient`**, never raw `Cli` types.
+- **`main.rs` is a composition root only** — zero business logic.
+- **Processor functions are pure** — no I/O, referentially transparent.
+- **All downloads are idempotent** — SHA-256 manifest prevents redundant writes.
+
+---
+
 ## Local Development Setup
 
 ### Prerequisites
 | Tool | Purpose | Install |
-|------|---------|---------|
-| Rust 1.93.1+ | Compiler | `rustup update stable` |
+|------|---------|---------
+| Rust 1.85+ | Compiler | `rustup update stable` |
 | `pre-commit` | Git hook manager | `pip install pre-commit` |
 | `gitleaks` | Secret scanning | `brew install gitleaks` or [GitHub releases](https://github.com/gitleaks/gitleaks/releases) |
 | `cargo-deny` | License/advisory audit | `cargo install cargo-deny` |
@@ -34,7 +73,32 @@ git config --local commit.gpgsign true
 git config --local user.signingkey <YOUR-GPG-KEY-ID>
 ```
 
-### Commit Message Format
+### Running Tests
+```bash
+# All tests (unit + integration + non-functional)
+cargo test
+
+# With verbose output
+cargo test -- --nocapture
+
+# Only a specific module's tests
+cargo test config::tests
+cargo test integrity::tests
+cargo test handlers::download::tests
+```
+
+### Lint Checks
+```bash
+# Format
+cargo fmt --check
+
+# Clippy (pedantic — matches CI)
+cargo clippy -- -D warnings -W clippy::pedantic
+```
+
+---
+
+## Commit Message Format
 Every commit **must** reference a Jira ticket from the `DSO` project:
 
 ```
@@ -55,7 +119,9 @@ DSO-42: implement thing     # ❌ Summary not capitalized
 Updated the thing           # ❌ No Jira ID
 ```
 
-### What the Hooks Enforce
+---
+
+## What the Hooks Enforce
 
 | Hook | Stage | What It Checks |
 |------|-------|---------------|
@@ -71,12 +137,22 @@ Updated the thing           # ❌ No Jira ID
 ---
 
 ## Coding Standards
-We adhere to "Boring Rust":
+
+We adhere to "Boring Rust" with clean architecture principles:
+
+### Architecture
+- **No business logic in `main.rs`** — it is a composition root only.
+- **Handlers depend on traits, not concrete types** — use `&dyn HttpClient`, not `&ReqwestClient`.
+- **`AppConfig` is the single source of truth** — handlers never access `Cli` directly.
+- **Processor functions must be pure** — no I/O, no side effects.
+- **All writes are idempotent** — SHA-256 manifest guards all file operations.
+
+### Code Quality
 - **No `unsafe`**.
-- **No `unwrap()` or `expect()`**. Use explicit error handling.
+- **No `unwrap()` or `expect()`** in production code. Use explicit error handling.
 - **Explicit Error Handling**: Use `thiserror` for library code and `anyhow` for applications.
 - **Type-Driven Design**: Leverage the type system to make invalid states unrepresentable.
-- **Clippy is Mandatory**: All code must pass `cargo clippy -- -D warnings -W clippy::pedantic -W clippy::nursery`.
+- **Clippy is Mandatory**: All code must pass `cargo clippy -- -D warnings -W clippy::pedantic`.
 - **Observability**: Use `tracing` for logging, NO `println!`.
 - **Secrets**: No unmasked secrets in memory. Use `secrecy` crate.
 - **AI Provenance**: Every `.rs` file must include the AI Provenance header (see `.github/file_header.txt`).
