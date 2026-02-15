@@ -1,0 +1,26 @@
+[package]
+name = "robustack-dl-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.11"
+
+[dependencies.robustack-dl]
+path = ".."
+
+# Fuzz targets — add new [[bin]] entries as modules are implemented.
+
+[[bin]]
+name = "parse_url"
+path = "fuzz_targets/parse_url.rs"
+doc = false
+
+[[bin]]
+name = "parse_manifest"
+path = "fuzz_targets/parse_manifest.rs"
+doc = false
