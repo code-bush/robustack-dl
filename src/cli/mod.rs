@@ -127,13 +127,8 @@ mod tests {
 
     #[test]
     fn parse_download_default_output() {
-        let cli = Cli::try_parse_from([
-            "robustack-dl",
-            "download",
-            "--url",
-            "https://example.com",
-        ])
-        .expect("valid args should parse");
+        let cli = Cli::try_parse_from(["robustack-dl", "download", "--url", "https://example.com"])
+            .expect("valid args should parse");
 
         match cli.command {
             Commands::Download(args) => {
@@ -145,8 +140,7 @@ mod tests {
 
     #[test]
     fn parse_audit_default_manifest() {
-        let cli =
-            Cli::try_parse_from(["robustack-dl", "audit"]).expect("valid args should parse");
+        let cli = Cli::try_parse_from(["robustack-dl", "audit"]).expect("valid args should parse");
 
         match cli.command {
             Commands::Audit(args) => {
@@ -158,13 +152,8 @@ mod tests {
 
     #[test]
     fn parse_audit_custom_manifest() {
-        let cli = Cli::try_parse_from([
-            "robustack-dl",
-            "audit",
-            "--manifest",
-            "/data/custom.json",
-        ])
-        .expect("valid args should parse");
+        let cli = Cli::try_parse_from(["robustack-dl", "audit", "--manifest", "/data/custom.json"])
+            .expect("valid args should parse");
 
         match cli.command {
             Commands::Audit(args) => {
@@ -176,13 +165,8 @@ mod tests {
 
     #[test]
     fn parse_completions_bash() {
-        let cli = Cli::try_parse_from([
-            "robustack-dl",
-            "completions",
-            "--shell",
-            "bash",
-        ])
-        .expect("valid args should parse");
+        let cli = Cli::try_parse_from(["robustack-dl", "completions", "--shell", "bash"])
+            .expect("valid args should parse");
 
         match cli.command {
             Commands::Completions(args) => {
@@ -194,21 +178,15 @@ mod tests {
 
     #[test]
     fn parse_global_config_flag() {
-        let cli = Cli::try_parse_from([
-            "robustack-dl",
-            "--config",
-            "/etc/robustack.toml",
-            "audit",
-        ])
-        .expect("valid args should parse");
+        let cli = Cli::try_parse_from(["robustack-dl", "--config", "/etc/robustack.toml", "audit"])
+            .expect("valid args should parse");
 
         assert_eq!(cli.config, Some(PathBuf::from("/etc/robustack.toml")));
     }
 
     #[test]
     fn config_defaults_to_none() {
-        let cli =
-            Cli::try_parse_from(["robustack-dl", "audit"]).expect("valid args should parse");
+        let cli = Cli::try_parse_from(["robustack-dl", "audit"]).expect("valid args should parse");
 
         assert!(cli.config.is_none());
     }
@@ -237,12 +215,8 @@ mod tests {
 
     #[test]
     fn invalid_shell_is_error() {
-        let result = Cli::try_parse_from([
-            "robustack-dl",
-            "completions",
-            "--shell",
-            "invalid_shell",
-        ]);
+        let result =
+            Cli::try_parse_from(["robustack-dl", "completions", "--shell", "invalid_shell"]);
         assert!(result.is_err(), "invalid shell name should fail");
     }
 
