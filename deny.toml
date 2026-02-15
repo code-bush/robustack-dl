@@ -1,9 +1,9 @@
 [advisories]
 ignore = []
-vulnerability = "deny"
+
 
 [licenses]
-unlicensed = "deny"
+
 allow = [
     "MIT",
     "Apache-2.0",
