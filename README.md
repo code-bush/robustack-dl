@@ -3,7 +3,10 @@
 > **"Own Your Reading. Byte by Byte."**
 
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3%20%2B%20Commercial-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/Rust-1.85%2B-orange.svg)](https://www.rust-lang.org/)
+[![CI](https://github.com/code-bush/robustack-dl/actions/workflows/ci.yml/badge.svg)](https://github.com/code-bush/robustack-dl/actions/workflows/ci.yml)
+[![Snyk Security](https://snyk.io/test/github/code-bush/robustack-dl/badge.svg)](https://snyk.io/test/github/code-bush/robustack-dl)
+[![SLSA 3](https://slsa.dev/images/badge-level-3.svg)](https://slsa.dev)
+[![Rust](https://img.shields.io/badge/Rust-1.88%2B-orange.svg)](https://www.rust-lang.org/)
 
 **RoBustack-DL** is a tool for digital repair, cybersecurity awareness, and resilience against mis/dis/malinformation. It allows you to archive and audit web content with integrity.
 
