@@ -63,15 +63,13 @@ pub fn run(manifest_path: &Path) -> anyhow::Result<()> {
         let file_path = canonical_dir.join(&safe_name);
 
         // Verify the resolved path stays inside the canonical directory.
-        if let Ok(canonical_file) = std::fs::canonicalize(&file_path) {
-            if !canonical_file.starts_with(&canonical_dir) {
-                error!(
-                    path = %entry.local_path,
-                    "Path traversal blocked — file escapes output directory"
-                );
-                fail_count += 1;
-                continue;
-            }
+        if std::fs::canonicalize(&file_path).is_ok_and(|c| !c.starts_with(&canonical_dir)) {
+            error!(
+                path = %entry.local_path,
+                "Path traversal blocked — file escapes output directory"
+            );
+            fail_count += 1;
+            continue;
         }
 
         if !file_path.exists() {
