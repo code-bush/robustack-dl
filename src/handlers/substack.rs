@@ -68,7 +68,12 @@ pub async fn fetch_posts(
         }
 
         let raw: RawResponse = serde_json::from_str(&text).map_err(|e| {
-            anyhow::anyhow!("Failed to parse JSON from {}: {} - Raw body snippet: {:.200}", url, e, text)
+            anyhow::anyhow!(
+                "Failed to parse JSON from {}: {} - Raw body snippet: {:.200}",
+                url,
+                e,
+                text
+            )
         })?;
 
         let (posts, total) = match raw {
@@ -135,8 +140,8 @@ pub async fn fetch_posts(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
     use crate::client::HttpClient;
+    use crate::config::AppConfig;
 
     #[derive(Debug)]
     struct MockClient {
@@ -151,14 +156,17 @@ mod tests {
         async fn get_text(&self, _url: &str) -> anyhow::Result<String> {
             Ok(self.response.clone())
         }
-        fn rate_limit(&self) -> u32 { 100 }
+        fn rate_limit(&self) -> u32 {
+            100
+        }
     }
 
     fn test_config() -> AppConfig {
         use crate::cli::Cli;
         use clap::Parser;
         // Minimal valid config
-        let cli = Cli::try_parse_from(["robustack-dl", "download", "--url", "https://x.com"]).unwrap();
+        let cli =
+            Cli::try_parse_from(["robustack-dl", "download", "--url", "https://x.com"]).unwrap();
         AppConfig::from_cli(&cli, None, None)
     }
 
@@ -168,7 +176,9 @@ mod tests {
             "posts": [{"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null}],
             "total": 1, "limit": 50, "offset": 0
         }"#;
-        let client = MockClient { response: response.to_string() };
+        let client = MockClient {
+            response: response.to_string(),
+        };
         let config = test_config();
 
         let posts = fetch_posts("https://base", &config, &client).await.unwrap();
@@ -182,7 +192,9 @@ mod tests {
             {"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null},
             {"id": 2, "slug": "slug2", "title": "T2", "description": "D2", "body_html": null, "post_date": "2024-01-02", "canonical_url": "u2", "cover_image": null}
         ]"#;
-        let client = MockClient { response: response.to_string() };
+        let client = MockClient {
+            response: response.to_string(),
+        };
         let config = test_config();
 
         let posts = fetch_posts("https://base", &config, &client).await.unwrap();
@@ -196,7 +208,9 @@ mod tests {
             {"id": 1, "slug": "slug1", "title": "T1", "description": "D1", "body_html": null, "post_date": "2024-01-01", "canonical_url": "u1", "cover_image": null},
             {"id": 2, "slug": "slug2", "title": "T2", "description": "D2", "body_html": null, "post_date": "2024-01-02", "canonical_url": "u2", "cover_image": null}
         ]"#;
-        let client = MockClient { response: response.to_string() };
+        let client = MockClient {
+            response: response.to_string(),
+        };
         let mut config = test_config();
         config.limit = Some(1);
 
