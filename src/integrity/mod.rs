@@ -290,9 +290,8 @@ pub fn should_skip(manifest: &Manifest, sha256: &str, output_dir: &Path, local_p
     let safe_name = sanitize_filename(local_path);
     // Canonicalize the base directory; if it cannot be resolved the file
     // cannot exist, so we conservatively return false (do not skip).
-    let canonical_dir = match std::fs::canonicalize(output_dir) {
-        Ok(d) => d,
-        Err(_) => return false,
+    let Ok(canonical_dir) = std::fs::canonicalize(output_dir) else {
+        return false;
     };
     let target = canonical_dir.join(&safe_name);
     // Verify the resolved target is still inside the canonical directory.

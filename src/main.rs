@@ -72,9 +72,9 @@ async fn main() -> anyhow::Result<()> {
             cli::print_completions(args.shell);
         }
         Commands::Version => {
+            use std::io::Write;
             let version = <Cli as clap::CommandFactory>::command().render_version();
             // Write to stdout (not println! — project uses tracing for logging).
-            use std::io::Write;
             std::io::stdout().write_all(version.as_bytes())?;
         }
     }

@@ -22,7 +22,7 @@ jobs:
         run: ls -R
 
       - name: Snyk Test
-        run: snyk test --severity-threshold=high
+        run: snyk test --file=Cargo.lock --severity-threshold=high
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
