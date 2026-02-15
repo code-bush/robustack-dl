@@ -19,7 +19,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Snyk CLI
-        uses: snyk/actions/setup@master
+        run: npm install -g snyk
 
       - name: Debug - List files
         run: ls -R
