@@ -43,3 +43,6 @@ fuzz/corpus/
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# Project specific
+manifest.json
