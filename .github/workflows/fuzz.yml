@@ -1,0 +1,39 @@
+name: Fuzz Testing (Monthly)
+
+on:
+  schedule:
+    # First day of every month at 03:00 UTC
+    - cron: "0 3 1 * *"
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  CARGO_TERM_COLOR: always
+  # Maximum fuzz duration per target (seconds). 10 minutes.
+  FUZZ_DURATION: 600
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [parse_url, parse_manifest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly (required by cargo-fuzz)
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Run fuzz target — ${{ matrix.target }}
+        run: cargo fuzz run ${{ matrix.target }} -- -max_total_time=${{ env.FUZZ_DURATION }}
+
+      - name: Upload crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          retention-days: 90
