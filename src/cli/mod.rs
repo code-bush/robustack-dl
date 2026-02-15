@@ -534,8 +534,8 @@ mod tests {
 
     #[test]
     fn parse_version_subcommand() {
-        let cli = Cli::try_parse_from(["robustack-dl", "version"])
-            .expect("valid args should parse");
+        let cli =
+            Cli::try_parse_from(["robustack-dl", "version"]).expect("valid args should parse");
 
         assert!(matches!(cli.command, Commands::Version));
     }

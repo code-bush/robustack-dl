@@ -27,7 +27,6 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::env;
 
-
 // ---------------------------------------------------------------------------
 // Manifest — idempotent download tracking
 // ---------------------------------------------------------------------------
@@ -82,7 +81,10 @@ impl Manifest {
         // joined — reject anything else (e.g. if the constant were ever
         // accidentally changed to contain a separator).
         if path.file_name().and_then(|f| f.to_str()) != Some(MANIFEST_FILENAME) {
-            anyhow::bail!("Internal error: unexpected manifest path {}", path.display());
+            anyhow::bail!(
+                "Internal error: unexpected manifest path {}",
+                path.display()
+            );
         }
 
         if !path.exists() {
@@ -112,7 +114,10 @@ impl Manifest {
 
         // Ensure it is a regular file (not a directory) to prevent read errors
         if !file.metadata()?.is_file() {
-             anyhow::bail!("Manifest is not a regular file: {}", canonical_path.display());
+            anyhow::bail!(
+                "Manifest is not a regular file: {}",
+                canonical_path.display()
+            );
         }
 
         // Read through the opened handle — the data comes from the inode at
@@ -133,7 +138,10 @@ impl Manifest {
 
         // Invariant: same filename-component check as load_or_create.
         if path.file_name().and_then(|f| f.to_str()) != Some(MANIFEST_FILENAME) {
-            anyhow::bail!("Internal error: unexpected manifest path {}", path.display());
+            anyhow::bail!(
+                "Internal error: unexpected manifest path {}",
+                path.display()
+            );
         }
 
         // Defence-in-depth: if the file already exists, verify its canonical
@@ -218,7 +226,6 @@ fn validate_path_is_safe(path: &Path) -> anyhow::Result<PathBuf> {
 
     Ok(canonical_path)
 }
-
 
 /// Strip directory-traversal components from an untrusted filename.
 ///
@@ -370,7 +377,6 @@ pub fn verify_file(
     // nosemgrep: rust.lang.security.filesystem.path-traversal.path-traversal-open.path-traversal-open
     let mut file = std::fs::File::open(&canonical_file)
         .map_err(|e| anyhow::anyhow!("Cannot open {}: {e}", canonical_file.display()))?;
-
 
     // Read through the already-opened handle — the data comes from the same
     // inode that was validated above.
@@ -541,7 +547,12 @@ mod tests {
 
         let result = verify_file(&dir, "", "irrelevant");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Empty relative path"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Empty relative path")
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -567,7 +578,12 @@ mod tests {
         // This is extremely likely to be outside the CWD (which is the repo root)
         let result = validate_path_is_safe(&temp);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Path traversal blocked"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Path traversal blocked")
+        );
     }
 
     #[test]
@@ -605,7 +621,10 @@ mod tests {
 
     #[test]
     fn sanitize_windows_separators() {
-        assert_eq!(sanitize_filename("..\\..\\Windows\\System32\\config"), "config");
+        assert_eq!(
+            sanitize_filename("..\\..\\Windows\\System32\\config"),
+            "config"
+        );
     }
 
     #[test]

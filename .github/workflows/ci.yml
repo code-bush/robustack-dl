@@ -18,8 +18,11 @@ jobs:
       - name: Install Snyk CLI
         uses: snyk/actions/setup@master
 
+      - name: Debug - List files
+        run: ls -R
+
       - name: Snyk Test
-        run: snyk test --file=Cargo.toml --severity-threshold=high
+        run: snyk test --severity-threshold=high
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

@@ -49,8 +49,7 @@ use std::io::Write;
 /// 4. Save manifest.
 pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyhow::Result<()> {
     if !config.dry_run {
-        std::fs::create_dir_all(&config.output_dir)
-            .context("Failed to create output directory")?;
+        std::fs::create_dir_all(&config.output_dir).context("Failed to create output directory")?;
     }
 
     // Pipeline Step 1: Load manifest (skip for dry-run to avoid I/O).
@@ -101,7 +100,9 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
             for cap in img_regex.captures_iter(&raw_html) {
                 if let Some(src_match) = cap.get(1) {
                     let src_url = src_match.as_str();
-                    match download_asset(src_url, &config.images_dir, config, client, &mut manifest).await {
+                    match download_asset(src_url, &config.images_dir, config, client, &mut manifest)
+                        .await
+                    {
                         Ok(local_path) => {
                             // This naive rewrite replaces ALL occurrences.
                             final_html = final_html.replace(src_url, &local_path);
@@ -114,17 +115,27 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
 
         // Step 5: Download attachments if enabled.
         if config.download_files {
-             for cap in link_regex.captures_iter(&raw_html) {
+            for cap in link_regex.captures_iter(&raw_html) {
                 if let Some(href_match) = cap.get(1) {
                     let href_url = href_match.as_str();
-                     if is_allowed_extension(href_url, &config.file_extensions) {
-                        match download_asset(href_url, &config.files_dir, config, client, &mut manifest).await {
+                    if is_allowed_extension(href_url, &config.file_extensions) {
+                        match download_asset(
+                            href_url,
+                            &config.files_dir,
+                            config,
+                            client,
+                            &mut manifest,
+                        )
+                        .await
+                        {
                             Ok(local_path) => {
                                 final_html = final_html.replace(href_url, &local_path);
                             }
-                            Err(e) => warn!(url = %href_url, error = %e, "Failed to download attachment"),
+                            Err(e) => {
+                                warn!(url = %href_url, error = %e, "Failed to download attachment")
+                            }
                         }
-                     }
+                    }
                 }
             }
         }
@@ -137,9 +148,9 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
         };
 
         let output_content = if config.add_source_url {
-             crate::processor::append_source_url(&output_content, &post.canonical_url)
+            crate::processor::append_source_url(&output_content, &post.canonical_url)
         } else {
-             output_content
+            output_content
         };
 
         // Calculate hash of what we are about to save.
@@ -169,15 +180,15 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
 
             // Update manifest.
             manifest.insert(integrity::ManifestEntry {
-                 local_path: filename,
-                 sha256: hash,
-                 source_url: post.canonical_url.clone(),
-                 size: output_content.len() as u64,
-                 downloaded_at: chrono::Utc::now().to_rfc3339(),
+                local_path: filename,
+                sha256: hash,
+                source_url: post.canonical_url.clone(),
+                size: output_content.len() as u64,
+                downloaded_at: chrono::Utc::now().to_rfc3339(),
             });
         }
     }
-    
+
     // Step 8: Create archive index.
     if config.create_archive {
         crate::handlers::archive::generate_index(&posts, config)?;
@@ -187,7 +198,7 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
     if !config.dry_run {
         manifest.save(&config.output_dir)?;
     }
-    
+
     info!("Download completed");
     Ok(())
 }
@@ -207,13 +218,13 @@ async fn download_asset(
     // Attempt download
     let bytes = client.get_bytes(url).await?;
     let hash = integrity::sha256_hex(&bytes);
-    
+
     // Derive extension
     let ext = std::path::Path::new(url)
         .extension()
         .and_then(|s| s.to_str())
         .unwrap_or("bin");
-        
+
     let filename = format!("{hash}.{ext}");
     let sub_path = std::path::Path::new(subdir).join(&filename);
     let full_path = config.output_dir.join(&sub_path);
@@ -221,8 +232,13 @@ async fn download_asset(
     // Ensure subdir exists
     std::fs::create_dir_all(config.output_dir.join(subdir))?;
 
-    if integrity::should_skip(manifest, &hash, &config.output_dir, sub_path.to_str().unwrap()) {
-         return Ok(sub_path.to_string_lossy().to_string());
+    if integrity::should_skip(
+        manifest,
+        &hash,
+        &config.output_dir,
+        sub_path.to_str().unwrap(),
+    ) {
+        return Ok(sub_path.to_string_lossy().to_string());
     }
 
     let mut file = std::fs::File::create(&full_path)?;
@@ -234,17 +250,21 @@ async fn download_asset(
         size: bytes.len() as u64,
         downloaded_at: chrono::Utc::now().to_rfc3339(),
     });
-    
+
     Ok(sub_path.to_string_lossy().to_string())
 }
 
 fn is_allowed_extension(url: &str, allowlist: &str) -> bool {
-    if allowlist.is_empty() { return true; }
+    if allowlist.is_empty() {
+        return true;
+    }
     let ext = std::path::Path::new(url)
         .extension()
         .and_then(|s| s.to_str())
         .unwrap_or("");
-    allowlist.split(',').any(|e| e.trim().eq_ignore_ascii_case(ext))
+    allowlist
+        .split(',')
+        .any(|e| e.trim().eq_ignore_ascii_case(ext))
 }
 
 #[cfg(test)]
@@ -302,7 +322,10 @@ mod tests {
     async fn handler_uses_mock_client() {
         let client = MockClient;
         assert_eq!(client.rate_limit(), 100);
-        let text = client.get_text("https://fake.url/api/v1/posts").await.unwrap();
+        let text = client
+            .get_text("https://fake.url/api/v1/posts")
+            .await
+            .unwrap();
         assert!(text.contains("posts"));
     }
 }

@@ -59,7 +59,7 @@ async fn start_mock() -> MockServer {
         .mount(&mock_server)
         .await;
 
-    // Fail-safe for other requests: return 404 to uncover issues, 
+    // Fail-safe for other requests: return 404 to uncover issues,
     // unless strictly needed.
     mock_server
 }
@@ -142,7 +142,11 @@ async fn download_with_valid_args_exits_zero() {
         .args(["download", "--url", &mock_server.uri()])
         .output()
         .expect("failed");
-    assert!(output.status.success(), "download valid args failed: {:?}", output);
+    assert!(
+        output.status.success(),
+        "download valid args failed: {:?}",
+        output
+    );
 }
 
 #[tokio::test]
@@ -174,7 +178,10 @@ async fn download_dry_run_creates_no_files() {
         .expect("failed");
 
     assert!(output.status.success());
-    assert!(!dir.exists(), "dry run should not create the output directory");
+    assert!(
+        !dir.exists(),
+        "dry run should not create the output directory"
+    );
 }
 
 #[tokio::test]
@@ -208,12 +215,7 @@ async fn download_with_image_options_exits_zero() {
 async fn download_with_archive_flag_exits_zero() {
     let mock_server = start_mock().await;
     let output = cli_cmd()
-        .args([
-            "download",
-            "--url",
-            &mock_server.uri(),
-            "--create-archive",
-        ])
+        .args(["download", "--url", &mock_server.uri(), "--create-archive"])
         .output()
         .expect("failed");
     assert!(output.status.success());
@@ -241,7 +243,11 @@ async fn list_with_url_exits_zero() {
         .args(["list", "--url", &mock_server.uri()])
         .output()
         .expect("failed");
-    assert!(output.status.success(), "list with valid url failed: {:?}", output);
+    assert!(
+        output.status.success(),
+        "list with valid url failed: {:?}",
+        output
+    );
 }
 
 // ===========================================================================

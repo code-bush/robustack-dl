@@ -83,7 +83,7 @@ mod tests {
         }
         async fn get_text(&self, url: &str) -> anyhow::Result<String> {
             if url.contains("/api/v1/posts") {
-                 return Ok(r#"{ "posts": [], "total": 0, "limit": 50, "offset": 0 }"#.to_string());
+                return Ok(r#"{ "posts": [], "total": 0, "limit": 50, "offset": 0 }"#.to_string());
             }
             Ok("stub".to_string())
         }
