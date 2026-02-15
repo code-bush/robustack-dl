@@ -13,6 +13,7 @@ allow = [
     "Unicode-3.0",
     "CDLA-Permissive-2.0",
     "GPL-3.0-only",
+    "Zlib",
 ]
 confidence-threshold = 0.8
 
@@ -21,6 +22,7 @@ multiple-versions = "warn"
 wildcards = "allow"
 skip = [
     { name = "hashbrown", version = "*" },
+    { name = "getrandom", version = "*" },
     { name = "windows-sys", version = "*" },
     { name = "windows-targets", version = "*" },
     { name = "windows_aarch64_gnullvm", version = "*" },
