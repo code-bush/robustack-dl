@@ -17,8 +17,8 @@ use crate::config::{AppConfig, OutputFormat};
 use crate::handlers::substack::SubstackPost;
 use crate::integrity;
 use anyhow::Context;
-use std::io::Write;
 use std::fmt::Write as _;
+use std::io::Write;
 use tracing::info;
 
 /// Generate an index file (index.html) listing all available posts.
