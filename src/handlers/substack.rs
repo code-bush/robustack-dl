@@ -68,12 +68,7 @@ pub async fn fetch_posts(
         }
 
         let raw: RawResponse = serde_json::from_str(&text).map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to parse JSON from {}: {} - Raw body snippet: {:.200}",
-                url,
-                e,
-                text
-            )
+            anyhow::anyhow!("Failed to parse JSON from {url}: {e} - Raw body snippet: {text:.200}")
         })?;
 
         let (posts, total) = match raw {
@@ -88,28 +83,28 @@ pub async fn fetch_posts(
         let received_count = posts.len() as u64;
         for post in posts {
             // Date filtering via string comparison (works for ISO8601)
-            if let Some(ref after) = config.after {
-                if post.post_date < *after {
-                    continue;
-                }
+            if config
+                .after
+                .as_ref()
+                .is_some_and(|after| post.post_date < *after)
+            {
+                continue;
             }
-            if let Some(ref before) = config.before {
-                if post.post_date > *before {
-                    continue;
-                }
+            if config
+                .before
+                .as_ref()
+                .is_some_and(|before| post.post_date > *before)
+            {
+                continue;
             }
-            if let Some(l) = config.limit {
-                if all_posts.len() >= l as usize {
-                    break;
-                }
+            if config.limit.is_some_and(|l| all_posts.len() >= l as usize) {
+                break;
             }
             all_posts.push(post);
         }
 
-        if let Some(l) = config.limit {
-            if all_posts.len() >= l as usize {
-                break;
-            }
+        if config.limit.is_some_and(|l| all_posts.len() >= l as usize) {
+            break;
         }
 
         offset += limit;
