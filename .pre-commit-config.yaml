@@ -1,0 +1,81 @@
+# =============================================================================
+# RoBustack-DL — Pre-Commit Configuration
+# =============================================================================
+# All hooks use local system tools to avoid network overhead.
+# Install: pip install pre-commit && pre-commit install --hook-type pre-commit --hook-type commit-msg
+# =============================================================================
+
+repos:
+  # ---------------------------------------------------------------------------
+  # All hooks are local — zero network calls.
+  # ---------------------------------------------------------------------------
+  - repo: local
+    hooks:
+
+      # -----------------------------------------------------------------------
+      # Commit Message — Jira DSO- Prefix Enforcement
+      # -----------------------------------------------------------------------
+      - id: jira-commit-msg
+        name: "Jira DSO- Commit Message"
+        entry: python3 scripts/validate_jira_msg.py
+        language: system
+        stages: [commit-msg]
+        always_run: true
+
+      # -----------------------------------------------------------------------
+      # Rust Quality Gates (Rust 1.93.1 Stable)
+      # -----------------------------------------------------------------------
+      - id: cargo-fmt
+        name: "cargo fmt --check"
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: "cargo clippy (pedantic + nursery)"
+        entry: cargo clippy --all-targets --all-features -- -D warnings -W clippy::pedantic -W clippy::nursery
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-test-doc
+        name: "cargo test --doc"
+        entry: cargo test --doc
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      # -----------------------------------------------------------------------
+      # Security — Shift-Left
+      # -----------------------------------------------------------------------
+      - id: gitleaks
+        name: "Gitleaks — secret scan"
+        entry: gitleaks detect --source . --no-banner --redact
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: cargo-deny
+        name: "cargo-deny — license & advisory audit"
+        entry: cargo deny check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: ai-provenance-header
+        name: "AI Provenance Header Check"
+        entry: scripts/check_provenance.sh
+        language: script
+        types: [rust]
+
+      # -----------------------------------------------------------------------
+      # Hardware-Level Security — GPG Signing
+      # -----------------------------------------------------------------------
+      - id: gpg-signing-check
+        name: "GPG commit signing enabled"
+        entry: scripts/check_gpg.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
