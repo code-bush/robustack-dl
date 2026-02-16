@@ -2,7 +2,7 @@
 
 ## Funding
 This project is part of the CodeBush Collective. Funds support cybersecurity awareness and Repair Cafés NI.
-Please support us via our [Open Collective](https://opencollective.com/codebush-collective), hosted by The Social Change Nest.
+Please support us via our [Open Collective](https://opencollective.com/code-bush), hosted by The Social Change Nest.
 
 ## Succession Policy
 **Bus Factor**: If the primary maintainer is inactive for **180 days**, ownership transfers to the **Designated Successor** (Placeholder) or will be decided by a community vote by the CodeBush Collective.
