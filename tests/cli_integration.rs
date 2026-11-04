@@ -138,8 +138,15 @@ fn download_without_url_exits_nonzero() {
 #[tokio::test]
 async fn download_with_valid_args_exits_zero() {
     let mock_server = start_mock().await;
+    let dir = tempfile::TempDir::new_in(".").expect("failed to create temp dir");
     let output = cli_cmd()
-        .args(["download", "--url", &mock_server.uri()])
+        .args([
+            "download",
+            "--url",
+            &mock_server.uri(),
+            "--output",
+            dir.path().to_str().unwrap(),
+        ])
         .output()
         .expect("failed");
     assert!(
