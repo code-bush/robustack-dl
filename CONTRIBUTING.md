@@ -7,6 +7,23 @@ Please support us via our [Open Collective](https://opencollective.com/codebush-
 ## Succession Policy
 **Bus Factor**: If the primary maintainer is inactive for **180 days**, ownership transfers to the **Designated Successor** (Placeholder) or will be decided by a community vote by the CodeBush Collective.
 
+## Code Review Policy
+
+The code-bush organisation currently operates as a single-maintainer project. Pull requests
+are required by branch protection rulesets but approving reviews are not enforced
+(`required_approving_review_count: 0`).
+
+**Accepted risk**: changes can merge without independent review. This is a deliberate
+trade-off for development velocity in a sole-maintainer context. Mitigations in place:
+
+- CI gates (build, security scan, compliance) must pass before merge.
+- Branch protection prevents direct pushes and force-pushes to `main` and `develop`.
+- Tag safety ruleset prevents tag deletion and update.
+- Dependabot alerts enabled for dependency vulnerabilities.
+
+When a second contributor joins, update the rulesets to require at least one approving
+review (`required_approving_review_count: 1`).
+
 ---
 
 ## Architecture
