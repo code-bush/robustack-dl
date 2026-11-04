@@ -1,6 +1,6 @@
 [package]
 name = "robustack-dl"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Robust Rust SubStack Downloader;  Own Your Reading. Byte by Byte."
