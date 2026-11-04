@@ -9,6 +9,25 @@ Please support us via our [Open Collective](https://opencollective.com/codebush-
 
 ---
 
+## Branch Flow
+
+```
+feature/DSO-* ──PR──> develop ──PR──> main
+fix/DSO-*     ──PR──> develop ──PR──> main
+```
+
+- **develop**: integration branch. PRs require passing status checks (security, compliance, build).
+- **main**: production branch. Same requirements. Protected against force-push and deletion.
+
+## Review Policy
+
+This is a single-developer organisation. PRs require zero approving reviews as a
+conscious decision — there are no other developers to serve as required reviewers.
+CI status checks are the primary merge gate. This decision is revisited when the
+team grows.
+
+---
+
 ## Architecture
 
 RoBustack-DL follows **clean architecture** with strict unidirectional dependencies:
