@@ -46,3 +46,6 @@ __pycache__/
 
 # Project specific
 manifest.json
+
+# Staged changes awaiting review
+staging/
