@@ -144,7 +144,7 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
                 sha256: hash,
                 source_url: post.canonical_url.clone(),
                 size: output_content.len() as u64,
-                downloaded_at: chrono::Utc::now().to_rfc3339(),
+                downloaded_at: utc_now_rfc3339()?,
             });
         }
     }
@@ -161,6 +161,13 @@ pub async fn run(url: &str, config: &AppConfig, client: &dyn HttpClient) -> anyh
 
     info!("Download completed");
     Ok(())
+}
+
+/// Current UTC time in RFC 3339 (e.g. `2026-11-27T00:45:12.5Z`) for manifest entries.
+fn utc_now_rfc3339() -> anyhow::Result<String> {
+    time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .context("Failed to format the download timestamp")
 }
 
 /// Helper to download an asset (image/file) and return relative path.
@@ -208,7 +215,7 @@ async fn download_asset(
         sha256: hash,
         local_path: sub_path.to_string_lossy().to_string(),
         size: bytes.len() as u64,
-        downloaded_at: chrono::Utc::now().to_rfc3339(),
+        downloaded_at: utc_now_rfc3339()?,
     });
 
     Ok(sub_path.to_string_lossy().to_string())

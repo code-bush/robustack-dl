@@ -30,6 +30,18 @@ chmod +x robustack-dl
 sudo mv robustack-dl /usr/local/bin/
 ```
 
+#### Verify provenance
+Release binaries after v1.2.0 carry a signed SLSA v1.0 Build Level 3 provenance attestation
+([GitHub artifact attestations](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating)),
+built and signed by [`release-build.yml`](.github/workflows/release-build.yml):
+
+```bash
+gh attestation verify robustack-dl -o code-bush \
+  --signer-workflow code-bush/robustack-dl/.github/workflows/release-build.yml
+```
+
+v1.2.0 and earlier ship `robustack-dl.intoto.jsonl` from the SLSA GitHub generator.
+
 ### From Source
 
 **Prerequisites**: [Rust 1.85+](https://www.rust-lang.org/tools/install)
