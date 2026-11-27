@@ -58,7 +58,7 @@ html2text = "0.17"
 
 # Regex for extracting image/file URLs from HTML.
 regex = "1.10"
-chrono = "0.4"
+time = { version = "0.3", features = ["formatting"] }
 
 [dev-dependencies]
 tempfile = "3.27"
