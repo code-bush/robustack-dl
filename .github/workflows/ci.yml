@@ -39,7 +39,8 @@ jobs:
         id: snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: echo "enabled=$([ -n "$SNYK_TOKEN" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          SNYK_ORG: ${{ secrets.SNYK_ORG }}
+        run: echo "enabled=$([ -n "$SNYK_TOKEN" ] && [ -n "$SNYK_ORG" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       # Findings are published to the Snyk UI (project robustack-dl) from main only;
       # PRs and other branches test without uploading
@@ -47,7 +48,7 @@ jobs:
         if: steps.snyk.outputs.enabled == 'true'
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          SNYK_ORG: ${{ vars.SNYK_ORG }}
+          SNYK_ORG: ${{ secrets.SNYK_ORG }} # secret, not variable: this repo is public and variables appear unmasked in logs
           PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: |
           if [ "$PUBLISH" = "true" ]; then
@@ -61,7 +62,7 @@ jobs:
         if: steps.snyk.outputs.enabled == 'true'
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          SNYK_ORG: ${{ vars.SNYK_ORG }}
+          SNYK_ORG: ${{ secrets.SNYK_ORG }} # secret, not variable: this repo is public and variables appear unmasked in logs
         run: snyk sbom test --file=robustack-dl.cdx.json --severity-threshold=high --org="$SNYK_ORG"
 
       # - name: Run Gitleaks
